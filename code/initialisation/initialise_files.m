@@ -1,7 +1,7 @@
 
 
 home = fullfile('/home','sjoerd-buitjes','University',...
-                                              'Master-Thesis','BEM','BEM-code');
+                                              'Master-Thesis','BEM','Boundary-Element-Method');
 
 % codepath= fullfile(home,'code');
 
