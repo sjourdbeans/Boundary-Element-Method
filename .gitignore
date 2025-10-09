@@ -1,4 +1,5 @@
-/datafiles/mesh
+/datafiles/mesh/*
 # */pipette_paper.mat 
 /code/distmesh/pipette_25_400_300.mat
 /code/distmesh/pipette_paper.mat 
+datafiles/Simulation-results-old
