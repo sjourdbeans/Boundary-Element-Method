@@ -179,7 +179,7 @@ if compute_flow >= 2
     % Comparing OTV, separate bead positions
     % [xgb,ygb]  = BeadCoordsFromFile(beadcoords_pth,pt_list,experiment);
     % OR: An axial slice:
-    xgb = [18:2:125]*-1; ygb = zeros(size(xgb));        % I commented out the Bead coordinates line - Sjoerd
+    xgb = (18:2:125)*-1; ygb = zeros(size(xgb));        % I commented out the Bead coordinates line - Sjoerd
     % OR: A lateral slice:
     % ygb = [18:2:125]*-1; xgb = zeros(size(xgb)); 
     
