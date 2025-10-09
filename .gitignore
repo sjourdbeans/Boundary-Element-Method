@@ -3,3 +3,5 @@
 /code/distmesh/pipette_25_400_300.mat
 /code/distmesh/pipette_paper.mat 
 datafiles/Simulation-results-old
+datafiles/BEM-results/BEM-Flow.mat
+datafiles/BEM-results/*
