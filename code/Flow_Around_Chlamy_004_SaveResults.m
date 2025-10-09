@@ -28,7 +28,7 @@ end
 
 %% MAKING MOVIE
 if makemovie ~= 0
-    moviefilename = [OTVfilename(1:end-4),'pipette','.avi'];
+    moviefilename = [OTVfilename(1:end-4),'.avi'];
     v = VideoWriter(moviefilename,'Motion JPEG AVI');
     v.FrameRate = 5;
     open(v)
