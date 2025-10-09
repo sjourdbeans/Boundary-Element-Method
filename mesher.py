@@ -90,4 +90,4 @@ if __name__ == "__main__":
 
     # from scipy.io import savemat 
     # Can be changed to npz file later
-    savemat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/BEM-code/datafiles/mesh/spheroid/mesh_panels_pv.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})
+    savemat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/mesh_panels_pv.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})
