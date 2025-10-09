@@ -3,7 +3,7 @@
 % Date: 2014-06.      Created.     by Daniel Tam
 % Date: 2017-07-18.   Organized.   Wei Da
 %     Some organization is called for after several users has worked
-%     with sults.
+%     with sults
 %         User dependent. One may edit directly the FAC_004_SaveResults.m
 %         file in the switchthis program. The organization of the code is as follows:
 %      
@@ -41,6 +41,7 @@
 
 addpath(fullfile(home,'code','initialisation'))
 initialise_files
+
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%  Operational modes   %%%%%%%%%%%%%%%%%%%%%%%%%%
 % User dependent, can modify without noticing others.
