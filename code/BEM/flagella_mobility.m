@@ -40,6 +40,7 @@ Xij    = Xi-Xi';
 Yij    = Yi-Yi';
 Zij    = Zi-Zi';
 
+% Add identity matrix to avoid division by zero (diagonals are zero)
 Rij    = sqrt( Xij.^2 + Yij.^2 + Zij.^2)   + 10^20*Id;
 
 Xij    = Xij./Rij; 
@@ -48,6 +49,7 @@ Zij    = Zij./Rij;
 
 Sij    = abs(Si-Si')  + 10^20*Id;
 
+% Select only non-diagonals
 Mask   = ones(size(Rij))-eye(size(Rij));
 %======================== action flagellum on flagellum =================================%
 K(1:3:3*N,1:3:3*N) = (1 + Xij.^2)./Rij.*Mask; 
