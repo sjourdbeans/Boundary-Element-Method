@@ -85,7 +85,8 @@ if __name__ == "__main__":
     x = np.linspace(-c, c, nz)  # axial coordinate along the long axis (x)
 
     r = a * np.sqrt(np.clip(1.0 - (x/c)**2, 0.0, 1.0))  # radius in the yz-plane
-    pv = np.column_stack([r, x]) 
+    pv = np.column_stack([x,r]) 
+
     print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
 
     # from scipy.io import savemat 
