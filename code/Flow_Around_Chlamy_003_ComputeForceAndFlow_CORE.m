@@ -237,7 +237,7 @@ for kk = beginctr:endctr
 
             % Plot flow field magnitude with heatmap
             pcolor(-reshape(yg,Nxg,Nyg),reshape(xg,Nxg,Nyg),...
-                   min(abs(reshape(u_flow,Nxg,Nyg)),1000));
+                   min(abs(reshape(UU_flow_rscl,Nxg,Nyg)),1000));
 
             % Plot flow field vector with quiver (reduced grid
             % optional)
