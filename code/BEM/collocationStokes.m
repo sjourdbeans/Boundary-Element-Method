@@ -27,7 +27,6 @@ function [MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,cen
  COLN_S   = zeros(3*numpanels,3);
  COLN_R   = zeros(3*numpanels,3);
 
- FSS= [];
 
  % Loop through the boundary elements. (Matrix is formed by row, ]
  % correponding the the contribution of each element to the integral equations writte at each collocation point)
@@ -44,6 +43,5 @@ function [MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,cen
    LINE_S   = [LINE_S    LS];  
    LINE_R   = [LINE_R    LR];
    Surf     = Surf + S;
-   FSS = [FSS S*eye(3)];
  end
 MATRIX = 0.5*eye(3*numpanels) + MATRIX; 
