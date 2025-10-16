@@ -14,7 +14,7 @@
 % matfile= sprintf('%s.mat',pipettefile);
 
 % Define speed configuration // rigid body motion 
-U(1) = 0;               % U is the velocity translation
+U(1) = 1;               % U is the velocity translation
 U(2) = 0;
 U(3) = 0; 
 
@@ -40,7 +40,7 @@ e     = 0.9;                        % Scaling factor for points on x axis
 param = struct('XS',XS,'XG',XG,'e',e);
 
 % Generate the collocation matrix
-[MATRIX,LINE_S,LINE_R,COLN_S,COLN_R] = collocationStokes(panels,centroids,normals,param,0);
+[MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,centroids,normals,param,0);
 fprintf('generated matrix\n'); % fprintf('Condition number: %3.15f',cond(MATRIX));
 save(meshfile,...
     'panels','centroids','normals','areas','MATRIX','LINE_S',...
@@ -50,9 +50,30 @@ save(meshfile,...
 [r,c]           = size(MATRIX);
 [U_t,U_r]       = U_colloc(U,W,centroids,r/3);
 RHS             = (U_t+U_r); 
+f = MATRIX \(-RHS) ; 
+
+
+%Loop to plot multiple velocities.
+
+% u_arr=0:0.1:10;
+% force_x=zeros(length(u_arr));
+% for i=1:length(u_arr);
+%     U(1)=u_arr(i);
+%     [U_t,U_r]       = U_colloc(U,W,centroids,r/3);
+%     RHS             = (U_t+U_r); 
+%     f = MATRIX \(-RHS) ; 
+%     force=FSS*f;
+%     force_x(i)=sqrt(force(1)^2+force(2)^2+force(3)^2);
+
+% end
 %%
 % Solve for the stokeslet density vector (minus sign because Dirichlet BC's)
-f = MATRIX \(-RHS) ; 
+
+
+% figure; 
+% plot(u_arr, force_x, '-o', 'LineWidth', 1.5, 'MarkerSize', 4);
+% xlabel('u'); ylabel('f'); title('f vs u');
+% grid on; box on; axis tight;
 
 %%
 % Plot singulartiy density
