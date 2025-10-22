@@ -1,4 +1,4 @@
-function [MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,centroids,normals,p,colloc)
+function [MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS,identity,C_R] = collocationStokes(panels,centroids,normals,p,colloc)
 % Fills in matrix relating panel charges to collocation point potentials.
 % Panel is stored as 3-D array
 % [panel verts, cond num, 0]
@@ -24,10 +24,14 @@ function [MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,cen
  MATRIX     = [];
  LINE_S   = [];
  LINE_R   = [];
+ FSS =[];
+%  LINE_R =zeros(3*numpanels,3);
  COLN_S   = zeros(3*numpanels,3);
  COLN_R   = zeros(3*numpanels,3);
+ identity =[];
 
- FSS= [];
+ C_R=[];
+%  FSS=0;
 
  % Loop through the boundary elements. (Matrix is formed by row, ]
  % correponding the the contribution of each element to the integral equations writte at each collocation point)
@@ -39,11 +43,16 @@ function [MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,cen
    end
    numverts = panels(1,1,i);
    panel = panels(2:numverts+1,:,i);
-   [area, collocpt, Z,FD,LS,LR,S] = calcpStokes(panel, centroids ,p);
+   [area, collocpt, Z,FD,LS,LR,S,C_r] = calcpStokes(panel, centroids ,p);
    MATRIX     = [MATRIX      FD];
    LINE_S   = [LINE_S    LS];  
-   LINE_R   = [LINE_R    LR];
-   Surf     = Surf + S;
-   FSS = [FSS S*eye(3)];
+   LINE_R   = [LINE_R LR];
+   C_R= [C_R C_r];
+   FSS = [FSS S];
+  %  Surf     = Surf + S;
+   identity = [identity eye(3)];
+
  end
-MATRIX = 0.5*eye(3*numpanels) + MATRIX; 
+
+MATRIX = 0.5*eye(3*numpanels) + MATRIX + FSS +C_R; 
+

@@ -22,14 +22,26 @@ W(1) = 0;               % W is the rotation velocity
 W(2) = 0;
 W(3) = 0;
 
+% force_x=zeros(size(spheroids));
+% force_y=zeros(size(spheroids));
+% force_z=zeros(size(spheroids));
+% elements=zeros(size(refinement));
+% b_arr=0.1:0.05:0.95;
+
+% for i=1:length(spheroids)
+% meshfile=spheroids{i};
+
 % Read in the panels
 load(meshfile)
 fprintf('read input file\n');
 
 % Compute the panel centroids and areas (don't need the normals).
 [centroids,normals,areas] = gencolloc(panels);
+
 fprintf('generated collocation points\n');
 
+[rows,cols,numpanels] = size(panels);
+elements(i)=numpanels;
 %%
 % Define geometry of line distribution of stokeslet and rotlet
 Xmax  = max(centroids(:,1));        % max X for point on surface of obj
@@ -40,7 +52,7 @@ e     = 0.9;                        % Scaling factor for points on x axis
 param = struct('XS',XS,'XG',XG,'e',e);
 
 % Generate the collocation matrix
-[MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS] = collocationStokes(panels,centroids,normals,param,0);
+[MATRIX,LINE_S,LINE_R,COLN_S,COLN_R,FSS,identity,C_r] = collocationStokes(panels,centroids,normals,param,0);
 fprintf('generated matrix\n'); % fprintf('Condition number: %3.15f',cond(MATRIX));
 save(meshfile,...
     'panels','centroids','normals','areas','MATRIX','LINE_S',...
@@ -48,22 +60,28 @@ save(meshfile,...
 
 % Create the RHS
 [r,c]           = size(MATRIX);
-[U_t,U_r]       = U_colloc(U,W,centroids,r/3);
+
+
+
+% u_arr=0:0.2:2;
+% for i=1:length(u_arr);
+    % u_arr(i)
+    % U(1)=u_arr(i);
+[U_t,U_r]       = U_colloc(U,W,centroids,r/3); 
 RHS             = (U_t+U_r); 
+
 f = MATRIX \(-RHS) ; 
 
 
-%Loop to plot multiple velocities.
+% force=LINE_S*f;
 
-% u_arr=0:0.1:10;
-% force_x=zeros(length(u_arr));
-% for i=1:length(u_arr);
-%     U(1)=u_arr(i);
-%     [U_t,U_r]       = U_colloc(U,W,centroids,r/3);
-%     RHS             = (U_t+U_r); 
-%     f = MATRIX \(-RHS) ; 
-%     force=FSS*f;
-%     force_x(i)=sqrt(force(1)^2+force(2)^2+force(3)^2);
+% torque=[zeros(3,2*r) LINE_R]*f;
+% force =f(end-3:end);
+% Fx_over_6pi = -F(1)/(6*pi); 
+% force_x(i)=sqrt(force(1)^2+force(2)^2+force(3)^2);%/(6*pi);
+% force_x(i)=-force(1)/(6*pi);
+% force_y(i)=-force(2);
+% force_z(i)=-force(3);
 
 % end
 %%
@@ -71,10 +89,11 @@ f = MATRIX \(-RHS) ;
 
 
 % figure; 
-% plot(u_arr, force_x, '-o', 'LineWidth', 1.5, 'MarkerSize', 4);
-% xlabel('u'); ylabel('f'); title('f vs u');
+% plot(b_arr, force_x, '-o', 'LineWidth', 1.5, 'MarkerSize', 4);
+% % yline(6*pi,'--r', "Analytical Solution")
+% xlabel('Cross-Sectional Radius $b$','Interpreter','latex'); ylabel('$F/(6\pi\mu a)$','Interpreter','latex'); title('Drag in the $x$-direction on a Spheroid as a Function of $b$','Interpreter','latex');
 % grid on; box on; axis tight;
-
+% pause
 %%
 % Plot singulartiy density
 f = reshape(f,[3,r/3])';
