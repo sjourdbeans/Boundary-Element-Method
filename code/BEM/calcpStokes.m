@@ -1,4 +1,4 @@
-function [area,centroid,Z,FD,LS,LR,S] = calcpStokes(panel,evalpnts,p)
+function [area,centroid,Z,FD,LS,LR,S,C_r] = calcpStokes(panel,evalpnts,p)
 %% FUNCTION CALCPSTOKES
 % Matlab version of calcp, returns potential at evaluation point due
 % to unit monopole and unit dipole uniformly distributed on a panel.
@@ -111,7 +111,7 @@ for i=1:verts
 end;
 
 % Compute quadrature points and weights for the panel (triang quad)
-[Xq,Yq,Wx,Wy]=triquad(2,npanel(:,1:2));
+[Xq,Yq,Wx,Wy]=triquad(3,npanel(:,1:2));
 Zq           = zeros(size(Xq));
 
 
@@ -123,6 +123,11 @@ Zq           = zeros(size(Xq));
 % [here we compute the contribution of each triangular element to the integral equation at each collocation point]
 
 FD = [];
+FS = [];
+FG = [];
+
+LR      = zeros(3,3);
+
 
 for evalindex = 1:numevals
     D     = zeros(3,3);         %Double layer potential
@@ -158,16 +163,40 @@ for evalindex = 1:numevals
     % Symmetric matrix
     D     = D + triu(D,1)';   
     %%%%%%%%%%%%% Line Distribution of Stokeslet and Rotlet %%%%%%%%%%%%%%%%%%%
-    S     = zeros(3,3);  
+    S     = zeros(3,3);
+    G     = zeros(3,3);
     % Calculate X coordinate on the centerline in regular coordinate frame (NOT PANEL FRAME)
     % Geometry is axisymmetric (??) Ask Daniel
 
     % X coordinates of the quadrature points from the center of the line distribution (??).
     R     = p.e*(centroid(1)+Xq*coord(1,1)+Yq*coord(2,1)-p.XG) + p.XG;
+    % Rs     = p.e*(centroid(1)-p.XG) + p.XG;
 
     Rx    = R*coord(1,1);
     Ry    = R*coord(2,1);
     Rz    = R*coord(3,1);
+
+    %=============
+    % Rs     = p.e*(centroid(1)-p.XG) + p.XG;
+
+    % Rsx    = Rs*coord(1,1);
+    % Rsy    = Rs*coord(2,1);
+    % Rsz    = Rs*coord(3,1);
+
+    % cent_pt   = (coord * centroid.').'; % (coord integration variable in local coord syst)
+    % xx    =  cent_pt(1)-Rsx;  
+    % yy    =  cent_pt(2)-Rsy;  
+    % zz    =  cent_pt(3)-Rsz;
+
+    % LR(1,2) =-zz;
+    % LR(1,3) = yy;
+    % LR(2,3) =-xx;
+    % LR(2,1) =-LR(1,2);
+    % LR(3,1) =-LR(1,3);
+    % LR(3,2) =-LR(2,3);
+
+    %=============
+
 
     Px    = Col(1)-Rx; Px2 = Px.^2;     %(x_i - x_0i)       [micron]
     Py    = Col(2)-Ry; Py2 = Py.^2;     %(x_j - x_0j)       [micron]
@@ -175,23 +204,25 @@ for evalindex = 1:numevals
     PP    = sqrt(Px2 + Py2 + Pz2);      % r=|x-x0|          [micron]
     PP3   = PP.^3;                      % r^3               [micron^3]
 
+
     Qx    = Int(1)+Xq-Rx;
     Qy    = Int(2)+Yq-Ry;
     Qz    = Int(3)+Zq-Rz;
 
+
     trace = Px.*Qx+Py.*Qy+Pz.*Qz;
 
-    s11   = 1./PP + Px2./PP3    + (trace - Qx.*Px)./PP3;
-    s12   =         Px.*Py./PP3 + (      - Qx.*Py)./PP3;
-    s13   =         Px.*Pz./PP3 + (      - Qx.*Pz)./PP3;
+    s11   =  1./PP +  Px2   ./PP3        ;
+    s12   =           Px.*Py./PP3   ;% +    
+    s13   =           Px.*Pz./PP3    ;%+    
 
-    s21   =         Py.*Px./PP3 + (      - Qy.*Px)./PP3;
-    s22   = 1./PP + Py2./PP3    + (trace - Qy.*Py)./PP3;
-    s23   =         Py.*Pz./PP3 + (      - Qy.*Pz)./PP3;
+    s21   =           Py.*Px./PP3    ;%+    
+    s22   =  1./PP +  Py2   ./PP3    ;%+    
+    s23   =           Py.*Pz./PP3    ;%+    
 
-    s31   =         Pz.*Px./PP3 + (      - Qz.*Px)./PP3;
-    s32   =         Pz.*Py./PP3 + (      - Qz.*Py)./PP3;
-    s33   = 1./PP + Pz2./PP3    + (trace - Qz.*Pz)./PP3;
+    s31   =           Pz.*Px./PP3    ;%+    
+    s32   =           Pz.*Py./PP3    ;%+    
+    s33   =  1./PP +  Pz2   ./PP3    ;%+    
 
     S(1,1)= Wx'*s11*Wy ;
     S(1,2)= Wx'*s12*Wy ;
@@ -205,15 +236,48 @@ for evalindex = 1:numevals
     S(3,2)= Wx'*s32*Wy ;
     S(3,3)= Wx'*s33*Wy ;
 
-    D = coord' * ( 3/(4*pi)*D + 1/(8*pi)*S ) * coord ; % Back in the initial coordinate system
+    g11  =  (trace - Qx.*Px)./PP3;
+    g12  =  (      - Qx.*Py)./PP3;
+    g13  =  (      - Qx.*Pz)./PP3;
+
+    g21  =  (      - Qy.*Px)./PP3;
+    g22  =  (trace - Qy.*Py)./PP3;
+    g23  =  (      - Qy.*Pz)./PP3;
+
+    g31  =  (      - Qz.*Px)./PP3;
+    g32  =  (      - Qz.*Py)./PP3;
+    g33  =  (trace - Qz.*Pz)./PP3;
+
+    G(1,1)= Wx'*g11*Wy ;
+    G(1,2)= Wx'*g12*Wy ;
+    G(1,3)= Wx'*g13*Wy ;
+
+    G(2,1)= Wx'*g21*Wy ;
+    G(2,2)= Wx'*g22*Wy ;
+    G(2,3)= Wx'*g23*Wy ;
+
+    G(3,1)= Wx'*g31*Wy ;
+    G(3,2)= Wx'*g32*Wy ;
+    G(3,3)= Wx'*g33*Wy ;
+ 
+
+  %+1/(8*pi)*(S+G)
+
+    D = coord' * ( 3/(4*pi)*D) * coord ; % Back in the initial coordinate system
+    S = coord' * (1/(8*pi)*S) * coord ;
+    G = coord' * (1/(8*pi)*G) * coord ;
 
     FD = [FD ; D];   
+    FS = [FS ; S];
+    FG = [FG ; G];
 end
 
-S   = Wx'*Wy;
+% S   = Wx'*Wy;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% III Matrix associated point stokestlet and rotlet in the o%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 % quadrature points Coordinates in local coordinate system 
 cent_pt   = (coord * centroid.').'; % (coord integration variable in local coord syst)
@@ -223,11 +287,13 @@ zz    =  cent_pt(3)+zeros(size(Xq));
 
 % 1./ Start with the lines (required matrices over integration elements)
 % Stokeslet
-Surf= Wx'*ones(size(Xq))*Wy;
-LS  = Surf*eye(3);
+S= Wx'*ones(size(Xq))*Wy;
+
+LS  = S*eye(3);
 
 % Rotlet
 LR      = zeros(3,3);
+
 LR(1,2) =-Wx'*zz*Wy;
 LR(1,3) = Wx'*yy*Wy;
 LR(2,3) =-Wx'*xx*Wy;
@@ -236,3 +302,5 @@ LR(3,1) =-LR(1,3);
 LR(3,2) =-LR(2,3);
 
 LR      = coord'*LR*coord;      % Back in the initial coordinate system
+C_r=FG;
+S=FS;
