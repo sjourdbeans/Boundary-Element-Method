@@ -66,14 +66,17 @@ def icosphere(subdiv=2):
     cent = verts[faces].mean(axis=1)
     nrm  = np.cross(verts[faces[:,1]]-verts[faces[:,0]],
                     verts[faces[:,2]]-verts[faces[:,0]])
-    flip = (np.einsum('ij,ij->i', nrm, cent) < 0)
+    flip = (np.einsum('ij,ij->i', nrm, cent) > 0)
     faces[flip] = faces[flip][:, [0,2,1]]
 
     return verts, faces
 
 if __name__ == "__main__":
+
+    a_arr=np.arange(0.1,1,0.05)
     # -------- prolate spheroid elongated along x (uniform mesh) --------
     a = 4   # short radii (y,z)
+    # for a in a_arr:
     c = 5   # long radius (x)
     subdiv = 2  # 20*4^2 = 320 triangles
 
@@ -91,4 +94,4 @@ if __name__ == "__main__":
 
     # from scipy.io import savemat 
     # Can be changed to npz file later
-    savemat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/mesh_panels_pv.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})
+    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/mesh_panels_pv.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})

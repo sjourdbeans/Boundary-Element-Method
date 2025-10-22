@@ -1,18 +1,23 @@
 % Prolate spheroid: x^2/a^2 + y^2/a^2 + z^2/c^2 = 1  (with c > a)
 
-a  = 6.0;              % equatorial semi-axis
-b  = 3.0;              % polar semi-axis
+a  = 5;              % equatorial semi-axis
+b  = 6;              % polar semi-axis
+% b_arr= 0.6:0.05:1;
 h0 = 1;             % target edge length (surface resolution)
 
 
+% for j=1:length(b_arr)
+
+% b=b_arr(j);
+
 pv = spheroid_profile(a,b,101);
 
-file_path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/";
-matfile =fullfile(file_path,"spheroid_mesh.mat");
-qiffile = fullfile(file_path,"qif", "spheroid_mesh.qif");
+file_path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid-variation/";
+matfile =fullfile(file_path,sprintf('spheroid_mesh_b=%d.mat', b));
+qiffile = fullfile(file_path, 'qif', sprintf('spheroid_mesh_b=%d.qif', b));
 
 % --- signed distance function (zero on surface) ---
-fd = @(p) sqrt((p(:,1)/a).^2 + (2*p(:,2)/b).^2 + (p(:,3)/b).^2) - 1;
+fd = @(p) sqrt((p(:,1)/b).^2 + (p(:,2)/a).^2 + (p(:,3)/a).^2) - 1;
 
 % --- size function (uniform); tweak for denser poles if desired (see below) ---
 fh = @(p) h0 + 0*p(:,1);
@@ -39,7 +44,7 @@ c = (p(t(:,1),:) + p(t(:,2),:) + p(t(:,3),:)) / 3;   % triangle centroids
 n = cross(p(t(:,2),:) - p(t(:,1),:), p(t(:,3),:) - p(t(:,1),:), 2); % face normals
 
 % outward test: dot(normal, position-from-center) should be > 0
-out = sum(n .* c, 2) > 0;
+out = sum(n .* c, 2) < 0;
 flip = find(~out);
 t(flip,[2 3]) = t(flip,[3 2]);   % swap two vertices to flip the normal
 
@@ -72,13 +77,13 @@ plotpanels(panels,ones(nz,1))
 view(3)
 axis equal
 xlabel('x [$\mu$m]'),ylabel('y [$\mu$m]'),zlabel('z [$\mu$m]')
-% cleanfigure; 
+cleanfigure; 
 % matlab2tikz('Mesh_pipette.tex','extraAxisOptions','scale=\figurescale');
 cameratoolbar
 
 save(matfile,'a','b','d','p','t','pv','panels');
 
-
+% end
 % visualize
 % trisurf(t, p(:,1), p(:,2), p(:,3), 'FaceColor',[0.8 0.9 1], 'EdgeColor',[0.3 0.3 0.3]);
 % axis equal vis3d; camlight; lighting gouraud;
