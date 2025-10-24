@@ -1,0 +1,73 @@
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import numpy as np
+
+def plot_mesh(
+    mesh:object,
+    plot_normals:bool=False,
+    normal_scale: float = 0.2,
+    face_alpha: float = 0.8,
+    edge_alpha: float = 0.8,
+):
+    """
+    Quick visualization of a Mesh.
+
+    Parameters
+    ----------
+    mesh : Mesh
+        The mesh instance (must have panels, centroids, normals).
+    plot_normals : bool
+        If True, plot normal vectors at panel centroids.
+    normal_scale : float
+        Quiver length for normals.
+    face_alpha : float
+        Face transparency of the surface.
+    edge_alpha : float
+        Edge transparency.
+    """
+    panels = [mesh.panels[1:, :, k] for k in range(mesh.elements)]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    surf = Poly3DCollection(
+        panels,
+        facecolor='lightgray',
+        edgecolor='k',
+        linewidth=0.3,
+        alpha=face_alpha,
+    )
+    surf.set_edgecolor((0, 0, 0, edge_alpha))
+    ax.add_collection3d(surf)
+
+    if plot_normals:
+        ax.quiver(
+            mesh.centroids[:,0], mesh.centroids[:,1], mesh.centroids[:,2],
+            mesh.normals[:,0], mesh.normals[:,1], mesh.normals[:,2],
+            length=normal_scale,
+            linewidth=0.5,
+            color='blue',
+            normalize=True,
+            label='normals'
+        )
+
+    all_pts = mesh.panels[1:, :, :].reshape(-1, 3)
+    xmin, ymin, zmin = all_pts.min(axis=0)
+    xmax, ymax, zmax = all_pts.max(axis=0)
+
+    max_range = max(xmax-xmin, ymax-ymin, zmax-zmin)
+    xmid = 0.5*(xmax+xmin)
+    ymid = 0.5*(ymax+ymin)
+    zmid = 0.5*(zmax+zmin)
+
+    ax.set_xlim(xmid - max_range/2, xmid + max_range/2)
+    ax.set_ylim(ymid - max_range/2, ymid + max_range/2)
+    ax.set_zlim(zmid - max_range/2, zmid + max_range/2)
+
+    ax.set_box_aspect([1, 1, 1])
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    if plot_normals:
+        plt.legend(frameon=False)
+    plt.show()

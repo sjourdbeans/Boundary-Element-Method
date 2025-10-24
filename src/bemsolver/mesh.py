@@ -2,6 +2,10 @@ from scipy.io import loadmat
 import warnings
 from dataclasses import dataclass, field
 import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib.pyplot as plt
+
+from .utils import find_panel_data
 # warnings.simplefilter("once", category=UserWarning)
 
 
@@ -40,12 +44,17 @@ class Mesh:
                         category=UserWarning,
                         stacklevel=3)
 
-        self.normals,self.centroids=self.loadPanels()
+        self.normals,self.centroids=self.load_panels()
+        self.x_max=np.max(self.centroids[:,0])
+        self.x_min=np.min(self.centroids[:,0])
+
+        self.parameters={"XG":(self.x_max-self.x_min)/2,
+                         "line_scale":0.9}
 
         print("Loading complete!")
 
 
-    def loadPanels(self)->tuple[np.ndarray,np.ndarray]:
+    def load_panels(self)->tuple[np.ndarray,np.ndarray]:
         """
         Load in the normals and centroids of all the panels in the mesh.
 
@@ -61,7 +70,7 @@ class Mesh:
 
         for i in range(self.elements):
             panel=self.panels[1:,:,i]
-            _,_,normal,centroid =self.findPanelData(panel)
+            _,_,normal,centroid =       find_panel_data(panel)  #from utils.py
             
             normals[i]      =normal
             centroids[i]    =centroid
@@ -69,62 +78,11 @@ class Mesh:
         return normals,centroids
         
 
-    def findPanelData(self,panel:np.ndarray)->tuple:
+
+
+    def plot_mesh(self, *args, **kwargs):
         """
-        Find the orthonormal unit vectors of a given panel (element) and calculate the geometric center of the panel.\\
-        
-        Parameters
-        ----------
-        panel   :   np.ndarray
-                    Array of shape (Mx3) with M being the amount of vertices of the panel.
-
-        Returns
-        -------
-        X           :   np.ndarray
-                        Unit x basis vector of the panel
-        Y           :   np.ndarray
-                        Unit y basis vector of the panel
-        Z           :   np.ndarray
-                        Unit z basis vector of the panel which is also the normal
-        centroid    :   np.ndarray
-                        xyz coordinates of the center of the panel
+        Use the plotting function in plotting.py
         """
-        num_verts,_=np.shape(panel)
-        
-        # Calculate the XYZ axes for every element (panel)
-        X=panel[2]-panel[0]
-
-        if num_verts==3:
-            Y=panel[1]-panel[0]  
-        else:
-            # If the elements have 4 vertices, use a different Y axis
-            Y=panel[1]-panel[3] 
-
-        Z=np.cross(X,Y)    
-
-        # Normalise X and Z vectors and calculate the corresponding orthonormal Y axis
-        Z   =Z/np.linalg.norm(Z)
-        X   =X/np.linalg.norm(X)
-        Y   =np.cross(Z,X)
-
-        # Calculate the centroid of the panel
-        vertex_1=panel[1]-panel[0]
-        if num_verts==4:
-            vertex_3=panel[3]-panel[0]
-        else:
-            vertex_3=panel[2]-panel[0]
-    
-        # Project into the panel axis
-        y1  =np.dot(vertex_1,Y)
-        y3  =np.dot(vertex_3,Y)
-        x1  =np.dot(vertex_1,X)
-        x3  =np.dot(vertex_3,X)
-        yc  = (y1 + y3)/3
-        xc  = (x1 + x3)/3
-
-        # Compute the panel centroid
-        centroid = panel[0] + xc * X + yc * Y
-        
-        return X,Y,Z, centroid
-
-
+        from . import plotting  # local import so mesh.py doesn't always import matplotlib
+        return plotting.plot_mesh(self, *args, **kwargs)

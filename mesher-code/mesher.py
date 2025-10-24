@@ -73,25 +73,26 @@ def icosphere(subdiv=2):
 
 if __name__ == "__main__":
 
-    a_arr=np.arange(0.1,1,0.05)
+    a_arr=np.arange(0.05,0.1,0.01)
     # -------- prolate spheroid elongated along x (uniform mesh) --------
-    a = 4   # short radii (y,z)
-    # for a in a_arr:
-    c = 5   # long radius (x)
-    subdiv = 2  # 20*4^2 = 320 triangles
+    # a = 4   # short radii (y,z)
+    for a in a_arr:
+        c = 1  # long radius (x)
+        subdiv = 3  # 20*4^2 = 320 triangles
 
-    p_unit, t = icosphere(subdiv=subdiv)
-    p = p_unit * np.array([c, a, a])  # scale to spheroid
 
-    panels = build_panels(p, t)
-    nz=301
-    x = np.linspace(-c, c, nz)  # axial coordinate along the long axis (x)
+        p_unit, t = icosphere(subdiv=subdiv)
+        p = p_unit * np.array([c, a, a])  # scale to spheroid
 
-    r = a * np.sqrt(np.clip(1.0 - (x/c)**2, 0.0, 1.0))  # radius in the yz-plane
-    pv = np.column_stack([x,r]) 
+        panels = build_panels(p, t)
+        nz=301
+        x = np.linspace(-c, c, nz)  # axial coordinate along the long axis (x)
 
-    print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
+        r = a * np.sqrt(np.clip(1.0 - (x/c)**2, 0.0, 1.0))  # radius in the yz-plane
+        pv = np.column_stack([x,r]) 
 
-    # from scipy.io import savemat 
-    # Can be changed to npz file later
-    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/mesh_panels_pv.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})
+        print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
+
+        # from scipy.io import savemat 
+        # Can be changed to npz file later
+        savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid-variation/spheroid_mesh_b={round(a,3)}.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})
