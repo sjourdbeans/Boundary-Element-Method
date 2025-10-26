@@ -7,7 +7,7 @@ BEM Stokes swimmer solver.
 
 from .mesh import Mesh
 from .solver import Solver
-from .kernels import stresslet
+
 
 
 __all__ = [

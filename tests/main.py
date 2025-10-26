@@ -14,7 +14,27 @@ newpath="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Meth
     
 
 mesh=BEM.Mesh(path)
-# mesh.parameters["line_scale"]
-# mesh.panels
 
-mesh.plot_mesh()
+
+# for c in mesh.centroids[:2]:
+#     m=np.array([[1,2,3],[4,5,6],[7,8,9]])
+#     print(m@c.T)
+
+
+# mesh.plot_mesh()
+
+BEM.Solver(mesh).construct_mobility_matrix()
+
+# panel=np.array([[0,0],
+#                [1,0],
+#                [0.5,1]])
+
+# Xq, Yq, Wx, Wy=BEM.triquad(2,panel)
+# print(Wy)
+
+# BEM.stresslet(np.array([0,0,0]))
+
+
+
+# panel=mesh.panels[:,:,1]
+

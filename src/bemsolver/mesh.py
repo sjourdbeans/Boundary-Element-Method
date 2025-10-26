@@ -1,9 +1,8 @@
 from scipy.io import loadmat
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import matplotlib.pyplot as plt
+
 
 from .utils import find_panel_data
 # warnings.simplefilter("once", category=UserWarning)
@@ -48,6 +47,7 @@ class Mesh:
         self.x_max=np.max(self.centroids[:,0])
         self.x_min=np.min(self.centroids[:,0])
 
+        # XG is the center of the centerline
         self.parameters={"XG":(self.x_max-self.x_min)/2,
                          "line_scale":0.9}
 
