@@ -6,13 +6,13 @@ BEM Stokes swimmer solver.
 
 
 from .mesh import Mesh
-from .solver import Solver
+from .solver import System
 
 
 
 __all__ = [
     "Mesh",
-    "Solver",
+    "System",
 ]
 
 __version__ = "0.1.0"

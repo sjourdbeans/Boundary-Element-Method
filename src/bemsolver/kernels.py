@@ -1,6 +1,237 @@
 import numpy as np
 from numba import njit
 
+
+def stresslet_vectorized(collocations   :np.ndarray,
+                         centroid       :np.ndarray,
+                         Xq             :np.ndarray,
+                         Yq             :np.ndarray,
+                         Wx             :np.ndarray, 
+                         Wy             :np.ndarray)->np.ndarray:
+    
+    """
+    Calculates the stresslet contribution of an element on all collocation points and integrates them. 
+    Only the normal component of the stresslet tensor is computed. This is the vectorised version.
+    Non-vectorised function is simply called stresslet.
+
+
+    Parameters
+    ----------
+    collocations : (M,3) array of evaluation points
+                   The collocation points to be evaluated
+    centroid     : (3,)  element centroid
+                   Center of the current element to be integrated
+    Xq           : (Q,Q) quadrature grid
+                    x-coordinates of the quadrature points
+    Yq           : (Q,Q) quadrature grid
+                   y-coordinates of the quadrature points
+    Wx           : (Q,)  quadrature weights
+                   Quadrature weights of the x-axis
+    Wy           : (Q,)  quadrature weights
+                   Quadrature weights of the y-axis
+
+    Returns
+    -------
+    T_all : (M,3,3) array of stresslet tensors
+            Stresslet contribution on all collocation points.
+
+    """
+
+
+    # Compute the integration weights
+    W2D = np.outer(Wx, Wy)  # shape (Q,Q)
+
+    # --- Vectorized distance computations ---
+    # Collocations shape: (M,3)
+    # Quadrature grid: (Q,Q)
+    # We broadcast the quadrature grid across all collocation points
+
+    # Determine the x,y,z vectors which define the distance between col. and cent.
+    # Collocations shape: (M,3)
+    # Quadrature grid: (Q,Q)
+    # The quadrature grid is broadcasted across all collocation points
+
+    x = collocations[:, None, None, 0] - (centroid[0] + Xq)
+    y = collocations[:, None, None, 1] - (centroid[1] + Yq)
+    z = collocations[:, None, None, 2] - centroid[2]
+
+    r2 = x**2 + y**2 + z**2
+    r = np.sqrt(r2)
+    r5 = r**5
+
+    # Calculate the normal stresslet contribution T_ij3
+    # The z axis is always normal to the surface
+
+    T_11 = z * x**2     / r5
+    T_12 = z * x * y    / r5
+    T_13 = z * x * z    / r5
+
+    T_22 = z * y**2     / r5
+    T_23 = z * y * z    / r5
+
+    T_33 = z * z**2     / r5
+
+    # Gaussian quadrature
+    def quad2d(A):
+        # Integrate A[..., Q, Q] over the quadrature weights
+        return np.sum(W2D * A, axis=(-2, -1))
+    
+    # Assemble stresslet tensor
+    T_all = np.zeros((collocations.shape[0], 3, 3))
+
+    T_all[:, 0, 0] = quad2d(T_11)
+    T_all[:, 0, 1] = quad2d(T_12)
+    T_all[:, 0, 2] = quad2d(T_13)
+
+    T_all[:, 1, 1] = quad2d(T_22)
+    T_all[:, 1, 2] = quad2d(T_23)
+
+    T_all[:, 2, 2] = quad2d(T_33)
+
+    # Stresslet tensor is symmetric
+    T_all[:, 1, 0] = T_all[:, 0, 1]
+    T_all[:, 2, 0] = T_all[:, 0, 2]
+    T_all[:, 2, 1] = T_all[:, 1, 2]
+
+    return T_all
+
+
+def line_singularity_vectorized(collocations    :np.ndarray,
+                                centroid        :np.ndarray, 
+                                coord           :np.ndarray,
+                                R               :np.ndarray, 
+                                Xq              :np.ndarray, 
+                                Yq              :np.ndarray,
+                                Wx              :np.ndarray,
+                                Wy              :np.ndarray)->tuple[np.ndarray,np.ndarray]:
+    
+    """
+    Calculates the stokeslet and rotlet contribution of the line singularity on all collocation points and integrates them. 
+    This is the vectorised version. Non-vectorised function is simply called line_singularity.
+
+
+    Parameters
+    ----------
+    collocations : (M,3) array of evaluation points
+                   The collocation points to be evaluated
+    centroid     : (3,)  element centroid
+                   Center of the current element to be integrated
+    coord        : (3,3) element coordinate frame
+                   Orthonormal coordinate system of the current element
+    Xq           : (Q,Q) quadrature grid
+                   x-coordinates of the quadrature points
+    Yq           : (Q,Q) quadrature grid
+                   y-coordinates of the quadrature points
+    Wx           : (Q,)  quadrature weights
+                   Quadrature weights of the x-axis
+    Wy           : (Q,)  quadrature weights
+                   Quadrature weights of the y-axis
+
+    Returns
+    -------
+    S_all, G_all : (M,3,3) arrays for all collocation points
+                    Stokeslet and rotlet contribution on all collocation points.
+    """
+
+    M = collocations.shape[0]
+    W2D = np.outer(Wx, Wy)
+
+    # Decompose the location R as x,y,z coordinates in the element frame
+    Rx = R * coord[0, 0]
+    Ry = R * coord[1, 0]
+    Rz = R * coord[2, 0]
+
+    # Define the vector P from the mapped quadrature points on the line to the collocation point
+    # Broadcasting shapes: (M,1,1) - (Q,Q)
+    Px = collocations[:, None, None, 0] - Rx       # Distance is in microns
+    Py = collocations[:, None, None, 1] - Ry
+    Pz = collocations[:, None, None, 2] - Rz
+
+    Px2 = Px**2
+    Py2 = Py**2
+    Pz2 = Pz**2
+    PP2 = Px2 + Py2 + Pz2
+    PP = np.sqrt(PP2)
+
+    PP3 = PP2 * PP
+
+    # Calculate the stokeslet contribution S = I/r + rr/r^3     without prefactor 1/(8 pi mu)
+    s11 = 1.0 / PP    +   Px2       / PP3
+    s12 =                 Px * Py   / PP3
+    s13 =                 Px * Pz   / PP3
+
+    s21 =                 Py * Px   / PP3
+    s22 = 1.0 / PP    +   Py2       / PP3
+    s23 =                 Py * Pz   / PP3
+
+    s31 =                 Pz * Px   / PP3
+    s32 =                 Pz * Py   / PP3
+    s33 = 1.0 / PP    +   Pz2       / PP3
+
+    # Gaussian quadrature
+    def quad2d(A):
+        return np.sum(W2D * A, axis=(-2, -1))
+    
+    # Assemble stokeslet tensor
+    S_all = np.zeros((M, 3, 3))
+    S_all[:, 0, 0] = quad2d(s11)
+    S_all[:, 0, 1] = quad2d(s12)
+    S_all[:, 0, 2] = quad2d(s13)
+
+    S_all[:, 1, 0] = quad2d(s21)
+    S_all[:, 1, 1] = quad2d(s22)
+    S_all[:, 1, 2] = quad2d(s23)
+
+    S_all[:, 2, 0] = quad2d(s31)
+    S_all[:, 2, 1] = quad2d(s32)
+    S_all[:, 2, 2] = quad2d(s33)
+
+    # Zq is always a matrix with zeros but for consistency I leave it in
+    Zq = np.zeros_like(Xq)
+
+    # Define the vector Q from the quadrature points on the centerline to the quadrature
+    # points on the current element (in element frame)
+    Qx = centroid[0] + Xq - Rx
+    Qy = centroid[1] + Yq - Ry
+    Qz = centroid[2] + Zq - Rz
+
+    # In the singularity equations, it does not mention the trace anywhere. However, if you work out the
+    # tensor calculus, it becomes convenient to write it in terms of the "trace"
+    trace = Px * Qx + Py * Qy + Pz * Qz
+
+    # Calculate the rotlet contribution R_ij= ɛ_ijk r_k / r^3
+    g11  =  (trace - Qx * Px) / PP3
+    g12  =  (      - Qx * Py) / PP3
+    g13  =  (      - Qx * Pz) / PP3
+
+    g21  =  (      - Qy * Px) / PP3
+    g22  =  (trace - Qy * Py) / PP3
+    g23  =  (      - Qy * Pz) / PP3
+
+    g31  =  (      - Qz * Px) / PP3
+    g32  =  (      - Qz * Py) / PP3
+    g33  =  (trace - Qz * Pz) / PP3
+
+    # Assemble rotlet tensor
+    G_all = np.zeros((M, 3, 3))
+
+    G_all[:, 0, 0] = quad2d(g11)
+    G_all[:, 0, 1] = quad2d(g12)
+    G_all[:, 0, 2] = quad2d(g13)
+
+    G_all[:, 1, 0] = quad2d(g21)
+    G_all[:, 1, 1] = quad2d(g22)
+    G_all[:, 1, 2] = quad2d(g23)
+
+    G_all[:, 2, 0] = quad2d(g31)
+    G_all[:, 2, 1] = quad2d(g32)
+    G_all[:, 2, 2] = quad2d(g33)
+
+    return S_all, G_all
+
+
+#============================ FROM HERE ONWARDS IS UNUSED CODE===========================
+
 @njit(fastmath=True)
 def stresslet(collocation:np.ndarray,
               centroid:np.ndarray,
@@ -11,6 +242,10 @@ def stresslet(collocation:np.ndarray,
     """
     Calculates the stresslet contribution of an element on the collocation point and integrates it. 
     Only the normal component of the stresslet tensor is computed.
+
+    NOTE: This function looks a lot like the original matlab code. It only calculates the contribution
+    per collocation point. With the @njit header, the computation speed is comparable with matlab.
+    However, using the vectorised version is much much quicker.
 
     Parameters
     ----------
@@ -82,6 +317,10 @@ def line_singularity(collocation:np.ndarray,
                      Wy         :np.ndarray):
     """
     Calculates the line singularity contribution of an element on the collocation point and integrates it. 
+
+    NOTE: This function looks a lot like the original matlab code. It only calculates the contribution
+    per collocation point. With the @njit header, the computation speed is comparable with matlab.
+    However, using the vectorised version is much much quicker.
 
     Parameters
     ----------
@@ -167,7 +406,7 @@ def line_singularity(collocation:np.ndarray,
     # tensor calculus, it becomes convenient to write it in terms of the "trace"
     trace = Px * Qx + Py * Qy + Pz * Qz
 
-    # Calculate the rotlet contribution R_ij= ɛ_ijk r_k / r^5
+    # Calculate the rotlet contribution R_ij= ɛ_ijk r_k / r^3
     g11  =  (trace - Qx * Px) / PP3
     g12  =  (      - Qx * Py) / PP3
     g13  =  (      - Qx * Pz) / PP3
@@ -195,152 +434,21 @@ def line_singularity(collocation:np.ndarray,
 
     return S, G
 
+# How to use stresslet and line_singularity functions (Not recommended!)
 
+#==================ORIGINAL LOOP (NOT USED)==================
+        # singularities    = np.zeros((3*numevals,3)) 
+        # for i, eval_point in enumerate(evaluation_points):
+            
+            # Col = coord @ eval_point    # Collocation point            
+            
+            # T=stresslet(Col, Int, Xq, Yq, Wx, Wy)
 
-@njit(fastmath=True, cache=True)
-def stresslet_fast(collocation, centroid, Xq, Yq, Wx, Wy):
-    """
-    Numba-accelerated stresslet computation.
-    """
-    T = np.zeros((3, 3))
+            # S, G = line_singularity(Col, Int, coord, R, Xq, Yq, Wx, Wy)
 
-    x = collocation[0] - (centroid[0] + Xq)
-    y = collocation[1] - (centroid[1] + Yq)
-    z = collocation[2] - centroid[2]
+            # singularities[i:i+3] = coord.T @ ( 3/(4*np.pi) * T + 1/(8*np.pi) * (S + G) ) @ coord
 
-    x2 = x * x
-    y2 = y * y
-    z2 = z * z
-    r2 = x2 + y2 + z2
-    r = np.sqrt(r2)
-    r5 = r2 * r2 * r
-
-    T_11 = z * x2 / r5
-    T_12 = z * x * y / r5
-    T_13 = z * x * z / r5
-    T_22 = z * y2 / r5
-    T_23 = z * y * z / r5
-    T_33 = z * z2 / r5
-
-    # Manually compute the weighted integrals (Wx and Wy are 1D)
-    # Equivalent to Wx @ A @ Wy but faster for small arrays
-    def quad2d(A, Wx, Wy):
-        tmp = np.zeros(A.shape[0])
-        for i in range(A.shape[0]):
-            acc = 0.0
-            for j in range(A.shape[1]):
-                acc += A[i, j] * Wy[j]
-            tmp[i] = acc
-        res = 0.0
-        for i in range(A.shape[0]):
-            res += Wx[i] * tmp[i]
-        return res
-
-    T[0, 0] = quad2d(T_11, Wx, Wy)
-    T[0, 1] = quad2d(T_12, Wx, Wy)
-    T[0, 2] = quad2d(T_13, Wx, Wy)
-    T[1, 1] = quad2d(T_22, Wx, Wy)
-    T[1, 2] = quad2d(T_23, Wx, Wy)
-    T[2, 2] = quad2d(T_33, Wx, Wy)
-
-    # Fill symmetric upper triangle
-    T[1, 0] = T[0, 1]
-    T[2, 0] = T[0, 2]
-    T[2, 1] = T[1, 2]
-
-    return T
-    
-
-@njit(fastmath=True, cache=True)
-def line_singularity_fast(collocation, centroid, coord, R, Xq, Yq, Wx, Wy):
-    """
-    Numba-accelerated line singularity contribution (Stokeslet + Rotlet).
-    Equivalent to MATLAB-style quadrature implementation but compiled to machine code.
-    """
-
-    # --- Helper for double quadrature integration ---
-    def quad2d(A, Wx, Wy):
-        tmp = np.zeros(A.shape[0])
-        for i in range(A.shape[0]):
-            acc = 0.0
-            for j in range(A.shape[1]):
-                acc += A[i, j] * Wy[j]
-            tmp[i] = acc
-        res = 0.0
-        for i in range(A.shape[0]):
-            res += Wx[i] * tmp[i]
-        return res
-
-    # --- Precompute Rx, Ry, Rz in element frame ---
-    Rx = R * coord[0, 0]
-    Ry = R * coord[1, 0]
-    Rz = R * coord[2, 0]
-
-    # --- Vector from mapped quadrature points to collocation point ---
-    Px = collocation[0] - Rx
-    Py = collocation[1] - Ry
-    Pz = collocation[2] - Rz
-
-    Px2 = Px * Px
-    Py2 = Py * Py
-    Pz2 = Pz * Pz
-
-    PP = np.sqrt(Px2 + Py2 + Pz2)
-    PP3 = PP * PP * PP
-
-    # --- Stokeslet tensor (S) ---
-    s11 = 1.0 / PP + Px2 / PP3
-    s12 = Px * Py / PP3
-    s13 = Px * Pz / PP3
-    s21 = Py * Px / PP3
-    s22 = 1.0 / PP + Py2 / PP3
-    s23 = Py * Pz / PP3
-    s31 = Pz * Px / PP3
-    s32 = Pz * Py / PP3
-    s33 = 1.0 / PP + Pz2 / PP3
-
-    S = np.zeros((3, 3))
-    S[0, 0] = quad2d(s11, Wx, Wy)
-    S[0, 1] = quad2d(s12, Wx, Wy)
-    S[0, 2] = quad2d(s13, Wx, Wy)
-    S[1, 0] = quad2d(s21, Wx, Wy)
-    S[1, 1] = quad2d(s22, Wx, Wy)
-    S[1, 2] = quad2d(s23, Wx, Wy)
-    S[2, 0] = quad2d(s31, Wx, Wy)
-    S[2, 1] = quad2d(s32, Wx, Wy)
-    S[2, 2] = quad2d(s33, Wx, Wy)
-
-    # --- Rotlet tensor (G) ---
-    G = np.zeros((3, 3))
-    Zq = np.zeros_like(Xq)
-
-    Qx = centroid[0] + Xq - Rx
-    Qy = centroid[1] + Yq - Ry
-    Qz = centroid[2] + Zq - Rz
-
-    trace = Px * Qx + Py * Qy + Pz * Qz
-
-    g11 = (trace - Qx * Px) / PP3
-    g12 = (-Qx * Py) / PP3
-    g13 = (-Qx * Pz) / PP3
-    g21 = (-Qy * Px) / PP3
-    g22 = (trace - Qy * Py) / PP3
-    g23 = (-Qy * Pz) / PP3
-    g31 = (-Qz * Px) / PP3
-    g32 = (-Qz * Py) / PP3
-    g33 = (trace - Qz * Pz) / PP3
-
-    G[0, 0] = quad2d(g11, Wx, Wy)
-    G[0, 1] = quad2d(g12, Wx, Wy)
-    G[0, 2] = quad2d(g13, Wx, Wy)
-    G[1, 0] = quad2d(g21, Wx, Wy)
-    G[1, 1] = quad2d(g22, Wx, Wy)
-    G[1, 2] = quad2d(g23, Wx, Wy)
-    G[2, 0] = quad2d(g31, Wx, Wy)
-    G[2, 1] = quad2d(g32, Wx, Wy)
-    G[2, 2] = quad2d(g33, Wx, Wy)
-
-    return S, G
+        #==============================================================
 
 
     
