@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib import cm, colors
+import numpy as np
 
 def plot_mesh(
     mesh:object,
@@ -69,4 +71,41 @@ def plot_mesh(
     ax.set_zlabel('z')
     if plot_normals:
         plt.legend(frameon=False)
+    plt.show()
+
+def plot_panels_stokes(panels, f):
+    """
+    Panels: 3D numpy array of shape (num_panel_points+1, 3, num_panels)
+            First row of each panel gives n (number of vertices)
+            Remaining rows are the coordinates
+    f: array of length num_panels with values to color each panel
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.cla()  # clear axis
+    
+    num_panels = panels.shape[2]
+    
+    # colormap and normalization
+    cmap = cm.viridis_r
+    norm = colors.Normalize(vmin=np.min(f), vmax=np.max(f))
+    
+    for ii in range(num_panels):
+        panel = panels[1:, :, ii]   # skip first row (n)
+        n = int(panels[0, 0, ii])   # number of vertices
+        verts = panel[:n, :]        # take only the vertices
+        
+        color = cmap(norm(f[ii]))
+        poly = Poly3DCollection([verts], facecolors=color, edgecolors='k')
+        ax.add_collection3d(poly)
+    
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_box_aspect([1,1,1])  # axis equal
+    
+    # Colorbar using the same normalization
+    mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+    mappable.set_array(f)
+    plt.colorbar(mappable, ax=ax)
     plt.show()

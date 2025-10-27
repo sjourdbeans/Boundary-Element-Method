@@ -47,11 +47,19 @@ class System:
 
         # lu, piv = lu_factor(self.MATRIX)
         # psi = lu_solve((lu, piv), -RHS)
-        psi=np.linalg.solve(self.MATRIX,RHS)
-        force   = self.surface_matrix @ psi
-        torque  = self.torque_matrix @ psi
+        self.psi=np.linalg.solve(self.MATRIX,RHS)
+        self.force   = self.surface_matrix @ self.psi
+        self.torque  = self.torque_matrix @ self.psi
 
-        return psi, force, torque
+        return self.psi, self.force, self.torque
+    
+    def plot_singularity_density(self):
+        from . import plotting
+
+        psi=self.psi.reshape((self.mesh.elements,3))
+        for i in range(3):
+            plotting.plot_panels_stokes(self.mesh.panels,psi[:,i])
+
 
 
     def construct_mobility_matrix(self):
@@ -91,6 +99,26 @@ class System:
 
     def calc_mobility_contribution(self,
                                    panel:np.ndarray)->tuple[np.ndarray, float, np.ndarray]: 
+        """
+        Calculate the contribution to the mobility matrix of an element on all collocation points.
+        By vectorising the collocation points, the singularity contributions are calculated at the same time
+        and thus increasing the computation speed.
+
+        Parameters
+        -------------
+        panel   : (V, 3) array with V being the amount of vertices.
+                  The current element (panel) to be integrated.
+
+        Returns
+        -------
+        A_global        : (M, 3, 3) array where M is the amount of collocation points.
+                          The total contribution of the stresslet, stokeslet, rotlet on all collocation points.
+        area            : float
+                          The area of the current element calculated with quadrature.
+        torque_tensor   : (3,3) array representing the torque on that element.
+                          This array corresponds to the torque matrix on the current element.
+                          To calculate the full torque on the mesh you multiply it with the double layer potential (psi).
+        """
 
         X,Y,Z,centroid =  find_panel_data(panel)  #from utils.py
 
@@ -179,8 +207,19 @@ class System:
 
         return A_global, area, torque_tensor
     
+
+    
+
+    #=========================OLD CODE===================================
+    
     def calc_mobility_contribution_old(self,
                                    panel:np.ndarray)->tuple[np.ndarray, float, np.ndarray]: 
+        """
+        OLD VERSION
+        -----------
+        This function looks the most like the matlab code, and it loops over all collocation points.
+        This is inefficient, which is why it has been replaced with the vectorised version.
+        """
 
         X,Y,Z,centroid =  find_panel_data(panel)  #from utils.py
 
@@ -202,13 +241,6 @@ class System:
 
         #============Assemble the matrices for the stresslets and line distribution===========
 
-        # In the original matlab code, there is a loop over all collocation points. If you specifically want 
-        # to do it this way, it is possible by using the the function stresslet and line_singularity in kernels.py.
-        # (see bottom kernels.py).
-        
-        # The loop has been removed by vectorising all collocation points such that the calculation is done
-        # for all collocation points at the same time. This makes the computation MUCH faster, by making use
-        # of numpy's C code.
 
         Int = coord @ centroid      # Center of current surface element for integration
         numevals,_=np.shape(self.evaluation_points)
@@ -226,34 +258,9 @@ class System:
 
             S, G = line_singularity(Col, Int, coord, R, Xq, Yq, Wx, Wy)
 
-            singularities[3*i:3*i+3] = coord.T @ (  1/(8*np.pi) * (G )) @ coord
-        #+ 3/(4*np.pi) * T 
-        # All collocation points transformed to the element reference frame
-        # Col_all = self.evaluation_points @ coord.T
-
+            singularities[3*i:3*i+3] = coord.T @ (3/(4*np.pi) * T + 1/(8*np.pi) * ( S + G )) @ coord
         
-        # Calculate the stresslet contribution of the element on every collocation point
-        # T_all=stresslet_vectorized(Col_all, Int, Xq, Yq, Wx, Wy)
-
-        # Map the quadrature points of the element to the centerline of the mesh 
-
-        # line_scale makes sure that the line distribution does not span the entire centerline,
-        # but makes it a bit smaller. If line_scale is set to zero, the line distribution of singularities
-        # collapses to a point singularity. XG is the middle of the line
-        # R   =   self.mesh.parameters["line_scale"] * (centroid[0] 
-        #                                                 + Xq * coord[0,0] 
-        #                                                 + Yq * coord[1,0] 
-        #                                                 - self.mesh.parameters["XG"]) + self.mesh.parameters["XG"]
-        
-
-        # Calculate the Stokeslet and rotlet contribution on all collocation points 
-        # S_all, G_all = line_singularity_vectorized(Col_all, centroid, coord, R, Xq, Yq, Wx, Wy)
-
-        # Calculate the the total singularity contribution of an element on all collocation points 
-        # A_all = (3/(4*np.pi)) * T_all + (1/(8*np.pi)) * (S_all + G_all)
-
-        # Transform back into the original coodinates
-        # A_global = np.einsum('ij,mjk,kl->mil', coord.T, A_all, coord)
+       
 
         # Calculate the area of the element using the quadrature weights
         area = Wx @ np.ones(np.shape(Xq)) @ Wy
@@ -276,6 +283,8 @@ class System:
         torque_tensor[1,0] = -torque_tensor[0,1]
         torque_tensor[2,0] = -torque_tensor[0,2]
         torque_tensor[2,1] = -torque_tensor[1,2]
+
+        torque_tensor =coord.T @ torque_tensor @ coord
 
         return singularities, area, torque_tensor
 

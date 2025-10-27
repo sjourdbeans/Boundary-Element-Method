@@ -20,7 +20,7 @@ path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/
 # Background flow
 U = np.zeros(3)
 
-U[0] = 0
+U[0] = 1
 U[1] = 0
 U[2] = 0
 
@@ -29,7 +29,7 @@ W = np.zeros(3)
 
 W[0] = 0
 W[1] = 0
-W[2] = 1
+W[2] = 0
 
     
 mesh=BEM.Mesh(path)
@@ -38,7 +38,8 @@ sys=BEM.System(mesh)
 
 psi, force, torque = sys.solve(U,W)
 
-print(torque)
+
+sys.plot_singularity_density()
 
 
 
