@@ -102,7 +102,7 @@ def plot_panels_stokes(panels, f):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.set_box_aspect([1,1,1])  # axis equal
+    # ax.set_box_aspect([1,1,1])  # axis equal
     
     # Colorbar using the same normalization
     mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
