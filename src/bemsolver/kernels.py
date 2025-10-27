@@ -18,9 +18,9 @@ def stresslet_vectorized(collocations   :np.ndarray,
     Parameters
     ----------
     collocations : (M,3) array of evaluation points
-                   The collocation points to be evaluated
+                   The collocation points to be evaluated in the element frame
     centroid     : (3,)  element centroid
-                   Center of the current element to be integrated
+                   Center of the current element to be integrated in the element frame
     Xq           : (Q,Q) quadrature grid
                     x-coordinates of the quadrature points
     Yq           : (Q,Q) quadrature grid
@@ -113,9 +113,9 @@ def line_singularity_vectorized(collocations    :np.ndarray,
     Parameters
     ----------
     collocations : (M,3) array of evaluation points
-                   The collocation points to be evaluated
+                   The collocation points to be evaluated in the element frame
     centroid     : (3,)  element centroid
-                   Center of the current element to be integrated
+                   Center of the current element to be integrated in the element frame
     coord        : (3,3) element coordinate frame
                    Orthonormal coordinate system of the current element
     Xq           : (Q,Q) quadrature grid

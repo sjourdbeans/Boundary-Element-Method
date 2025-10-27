@@ -58,3 +58,40 @@ def find_panel_data(panel:np.ndarray)->tuple:
         centroid = panel[0] + xc * X + yc * Y
         
         return X,Y,Z, centroid
+
+
+def U_colloc(U          :np.ndarray,
+             W          :np.ndarray,
+             centroids   :np.ndarray,
+             r          :int)->tuple[np.ndarray,np.ndarray]:
+    """
+    Calculate translational and rotational velocity at each collocation point.
+
+    Parameters
+    ----------
+    U : np.ndarray, shape (3,)
+        Translational velocity of external flow [micron/s].
+    W : np.ndarray, shape (3,)
+        Rotational velocity of external flow [rad/s].
+    centroid : np.ndarray, shape (r, 3)
+        XYZ coordinates of centroids of cell mesh [micron].
+    r : int
+        Number of rows / collocation points.
+
+    Returns
+    -------
+    U_t : np.ndarray, shape (3*r,)
+        Translational velocity vector [micron/s].
+    U_r : np.ndarray, shape (3*r,)
+        Rotational velocity vector [micron/s].
+    """
+     # Translational velocity: just repeat U for each collocation point
+    U_t = np.tile(U, r)
+
+    # Rotational velocity: cross product W x centroid
+    U_r = np.empty(3*r)
+    U_r[0::3] =  W[1]*centroids[:,2] - W[2]*centroids[:,1]
+    U_r[1::3] = -W[0]*centroids[:,2] + W[2]*centroids[:,0]
+    U_r[2::3] =  W[0]*centroids[:,1] - W[1]*centroids[:,0]
+
+    return U_t, U_r
