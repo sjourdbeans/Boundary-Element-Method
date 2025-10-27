@@ -54,11 +54,26 @@ class System:
         return self.psi, self.force, self.torque
     
     def plot_singularity_density(self):
+        """
+        Plot the singularity density x,y,z components in separate plots.
+
+        NOTE: This can only run after the simulation has been solved.
+
+        """
         from . import plotting
 
-        psi=self.psi.reshape((self.mesh.elements,3))
-        for i in range(3):
-            plotting.plot_panels_stokes(self.mesh.panels,psi[:,i])
+        try:
+            psi=self.psi.reshape((self.mesh.elements,3))
+            figs=[]
+            axes=[]
+            for i in range(3):
+                fig,ax=plotting.plot_panels_stokes(self.mesh.panels,psi[:,i])
+                figs.append(fig)
+                axes.append(ax)
+            return figs, axes 
+        except:
+            raise SyntaxError("System has not been solved yet! Run System.solve(RHS) before plotting.")
+        
 
 
 
