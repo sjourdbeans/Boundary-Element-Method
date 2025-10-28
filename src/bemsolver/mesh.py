@@ -82,7 +82,7 @@ class Mesh:
 
     def plot_mesh(self, *args, **kwargs):
         """
-        Use the plotting function in plotting.py
+        Use the plotting function in plotting.py to plot the current loaded mesh.
         """
         from . import plotting  # local import so mesh.py doesn't always import matplotlib
         return plotting.plot_mesh(self, *args, **kwargs)
