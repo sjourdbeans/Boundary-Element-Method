@@ -2,10 +2,11 @@ import numpy as np
 from typing import Optional
 from dataclasses import dataclass, field
 from scipy.linalg import lu_factor, lu_solve
+from abc import ABC, abstractmethod
 
 from .mesh import Mesh
 from .utils import find_panel_data, U_colloc
-from .kernels import stresslet_vectorized, line_singularity_vectorized, stresslet, line_singularity
+from .kernels import stresslet_vectorized, line_singularity_vectorized
 from .quadrature import triquad
 
 
@@ -13,7 +14,7 @@ from .quadrature import triquad
 
 
 @dataclass
-class System:
+class BaseSystem(ABC):
 
     mesh:Mesh
     evaluation_points: Optional[np.ndarray] = field(default=None)
@@ -75,89 +76,16 @@ class System:
 
         return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
     
-        
-    def solve(self,
-              U:np.ndarray,
-              W:np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Solve the linear system M*psi=U, and return the double layer density,
-        the total force, and the total torque on the body by the boundary condition U.
-        """
-        
-        # self.MATRIX, self.surface_matrix, self.torque_matrix, self.r_cross=self.construct_mobility_matrix()
-        
-        RHS = self.set_boundary_condition(U,W)
-
-        # lu, piv = lu_factor(self.MATRIX)
-        # psi = lu_solve((lu, piv), -RHS)
-        self.psi=np.linalg.solve(self.MATRIX,RHS)
-        self.force   = self.surface_matrix @ self.psi
-        self.torque  = self.torque_matrix @ self.psi
-
-        return self.psi, self.force, self.torque
-    
-    def construct_grand_mobility_matrix(self):
-        
-        r, c = np.shape(self.MATRIX)        
-
-        # Generate r/3 identity matrices stacked vertically (r,3) matrix
-        V = np.tile(np.eye(3), int(r/3)).T
-        A = self.r_cross
-
-        F = self.surface_matrix
-        T = self.torque_matrix
-
-        M=np.block([
-            [self.MATRIX, V, A],
-            [F, np.zeros((3,6))],
-            [T, np.zeros((3,6))]
-        ])
-        return M
     
     def set_boundary_condition(self,
-                               U:np.ndarray,
-                               W:np.ndarray)->np.ndarray:
-        
-        r, c = np.shape(self.MATRIX)
-        U_t, U_r, _ =U_colloc(U,W, self.mesh.centroids,int(r/3))
-
-        return U_t+U_r
-    
-    def set_shear_boundary_condition(self,
                                U        :np.ndarray,
                                W        :np.ndarray,
-                               E        :np.ndarray)->np.ndarray:
+                               E        :np.ndarray=np.zeros((3,3)))->np.ndarray:
         
         r, c = np.shape(self.MATRIX)
         U_t, U_r, U_e =U_colloc(U,W, self.mesh.centroids,int(r/3), E)
 
         return U_t+U_r+U_e
-
-        
-
-
-
-    
-    def plot_singularity_density(self):
-        """
-        Plot the singularity density x,y,z components in separate plots.
-
-        NOTE: This can only run after the simulation has been solved.
-
-        """
-        from . import plotting
-
-        try:
-            psi=self.psi.reshape((self.mesh.elements,3))
-            figs=[]
-            axes=[]
-            for i in range(3):
-                fig,ax=plotting.plot_panels_stokes(self.mesh.panels,psi[:,i])
-                figs.append(fig)
-                axes.append(ax)
-            return figs, axes 
-        except:
-            raise SyntaxError("System has not been solved yet! Run System.solve(RHS) before plotting.")
         
 
 
@@ -331,87 +259,6 @@ class System:
 
         return A_global, area, torque_tensor, r_cross
     
-
-    
-
-    #=========================OLD CODE===================================
-    
-    def calc_mobility_contribution_old(self,
-                                   panel:np.ndarray)->tuple[np.ndarray, float, np.ndarray]: 
-        """
-        OLD VERSION
-        -----------
-        This function looks the most like the matlab code, and it loops over all collocation points.
-        This is inefficient, which is why it has been replaced with the vectorised version.
-        """
-
-        X,Y,Z,centroid =  find_panel_data(panel)  #from utils.py
-
-        # Assemble the coordinate frame
-        coord = np.vstack([X,Y,Z])
-
-        npanel=np.zeros(np.shape(panel))
-
-        for i,vert in enumerate(panel):
-            npanel[i]=(coord @ (vert-centroid))
-
-
-        #=============Compute quadrature points for the panel=============
-
-        # Instead of using modules like quadpy, we do the quadrature ourselves because we want to avoid singularities.
-        # This way the difference between the collocation point and centroid is never 0 (so we don't divide by 0)
-        Xq, Yq, Wx, Wy = triquad(3, npanel[:, 0:2])
-        Zq             = np.zeros(np.shape(Xq))
-
-        #============Assemble the matrices for the stresslets and line distribution===========
-
-
-        Int = coord @ centroid      # Center of current surface element for integration
-        numevals,_=np.shape(self.evaluation_points)
-        singularities    = np.zeros((3*numevals,3)) 
-
-        for i, eval_point in enumerate(self.evaluation_points):
-            
-            Col = coord @ eval_point    # Collocation point            
-            
-            T=stresslet(Col, Int, Xq, Yq, Wx, Wy)
-            R   =   self.mesh.parameters["line_scale"] * (centroid[0] 
-                                                        + Xq * coord[0,0] 
-                                                        + Yq * coord[1,0] 
-                                                        - self.mesh.parameters["XG"]) + self.mesh.parameters["XG"]
-
-            S, G = line_singularity(Col, Int, coord, R, Xq, Yq, Wx, Wy)
-
-            singularities[3*i:3*i+3] = coord.T @ (3/(4*np.pi) * T + 1/(8*np.pi) * ( S + G )) @ coord
-        
-       
-
-        # Calculate the area of the element using the quadrature weights
-        area = Wx @ np.ones(np.shape(Xq)) @ Wy
-
-        # Convert the coordinates of the element centroid to element coodinates
-        cent_pt = coord @ centroid 
-
-        xx = cent_pt[0] + Xq       # shape (Q,Q)
-        yy = cent_pt[1] + Yq       # shape (Q,Q)
-        zz = cent_pt[2] + Zq
-
-        # Initialise torque tensor (equivalent to r x psi = R psi,  so R = [r] x )
-        torque_tensor = np.zeros((3,3))
-
-        torque_tensor[0,1] = -Wx @ zz @ Wy
-        torque_tensor[0,2] =  Wx @ yy @ Wy
-        torque_tensor[1,2] = -Wx @ xx @ Wy
-
-        # Anti-symmetric tensor
-        torque_tensor[1,0] = -torque_tensor[0,1]
-        torque_tensor[2,0] = -torque_tensor[0,2]
-        torque_tensor[2,1] = -torque_tensor[1,2]
-
-        torque_tensor =coord.T @ torque_tensor @ coord
-
-        return singularities, area, torque_tensor
-
 
 
 

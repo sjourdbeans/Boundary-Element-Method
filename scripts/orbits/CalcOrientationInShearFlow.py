@@ -1,6 +1,5 @@
 import numpy as np
 import bemsolver as BEM
-from scipy.linalg import expm
 
 from scipy.linalg import lu_factor, lu_solve
 
@@ -8,14 +7,14 @@ from scipy.linalg import lu_factor, lu_solve
 # Background flow
 U = np.zeros(3)
 
-U[0] = 0
+U[0] = 1
 U[1] = 0
 U[2] = 0
 
 # Background vorticity
 W = np.zeros(3)
 
-gamma_dot=2
+gamma_dot=0
 
 
 
@@ -56,6 +55,7 @@ def quat_to_matrix(q):
     ])
 
 
+
 def rk4_quaternion(q, omega_func, Q, t, dt):
     """
     RK4 integration for quaternion.
@@ -78,58 +78,24 @@ def rk4_quaternion(q, omega_func, Q, t, dt):
 
 
 
-
-# def skew(omega):
-#     return np.array([[0, -omega[2], omega[1]],
-#                      [omega[2], 0, -omega[0]],
-#                      [-omega[1], omega[0], 0]])
-
-
-# def update_rotation(Q, omega_body, dt):
-#     """Integrate rotation matrix forward one step."""
-#     return expm(skew(omega_body) * dt) @ Q
-
-
-# def rk4_rotation(Q, omega_func, t, dt):
-#     """
-#     Integrate rotation matrix Q(t) using RK4.
-
-#     Parameters
-#     ----------
-#     Q : np.ndarray, shape (3,3)
-#         Current rotation matrix.
-#     omega_func : function
-#         Function omega = omega_func(Q, t) that returns angular velocity in lab frame.
-#     t : float
-#         Current time.
-#     dt : float
-#         Timestep.
-
-#     Returns
-#     -------
-#     Q_new : np.ndarray, shape (3,3)
-#         Updated rotation matrix at t+dt.
-#     """
-#     k1 = skew(omega_func(Q, t)) @ Q
-#     k2 = skew(omega_func(Q + 0.5*dt*k1, t + 0.5*dt)) @ (Q + 0.5*dt*k1)
-#     k3 = skew(omega_func(Q + 0.5*dt*k2, t + 0.5*dt)) @ (Q + 0.5*dt*k2)
-#     k4 = skew(omega_func(Q + dt*k3, t + dt)) @ (Q + dt*k3)
-
-#     Q_new = Q + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
-#     return Q_new
-
 def omega_func(Q, t):
     # Rotate lab-frame background flow into particle frame
     U_body = Q.T @ U
     W_body = Q.T @ W
     E_body = Q.T @ E @ Q
 
+
     # Solve BEM for current angular velocity
-    U_rhs = sys.set_shear_boundary_condition(U_body, W_body, E_body)
+    U_rhs = sys.set_boundary_condition(U_body, W_body, E_body)
     RHS = np.hstack((U_rhs, np.zeros(6)))
     phi = lu_solve((lu, piv), -RHS)
 
+    psi= phi[:-6]
+    # print(sys.surface_matrix@psi)
+    # print(sys.torque_matrix@psi)
+
     omega = phi[-3:]
+    
     return omega  
 
 
@@ -146,10 +112,11 @@ path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/
 
     
 mesh=BEM.Mesh(path)
-mesh.plot_mesh(plot_normals=True)
-sys=BEM.System(mesh)
 
-sys.construct_mobility_matrix()
+mesh.plot_mesh(plot_normals=False)
+sys=BEM.MobilityProblem(mesh)
+
+
 
 M=sys.construct_grand_mobility_matrix()
 
@@ -174,15 +141,18 @@ for k, t in enumerate(time[:-1]):
     if t%5==0:
         print(f"Calculating timestep t={t} out of {T}")
     # RK4 integrate quaternion
-    q = rk4_quaternion(q, omega_func, Q, t, dt)
+    q = rk4_quaternion(q,omega_func,Q, t, dt)
 
     # Update rotation matrix from quaternion
     Q = quat_to_matrix(q)
     # if k % 10 == 0:
     Ut, _, Vt = np.linalg.svd(Q)
     Q = Ut @ Vt
+    
 
+    # Q[:,0][2]=0
     # Store orientation (major axis)
+    # print(Q[:,0])
     p[k+1] = Q[:, 0]
 
 
