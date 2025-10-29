@@ -37,12 +37,13 @@ for i, file in enumerate(files):
     elements[i]=mesh.elements
 
     sys=BEM.System(mesh)
+    sys.construct_mobility_matrix()
 
     psi, force, torque = sys.solve(U,W)
 
     force_x[i]=force[0]
 
-np.savetxt("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/sphere-refinement/force_x_vs_N.txt",
+np.savetxt("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/drag/sphere-refinement-PM/force_x_vs_N.txt",
             np.vstack((elements,force_x)).T)
 
 
