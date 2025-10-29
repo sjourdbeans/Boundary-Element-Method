@@ -32,18 +32,61 @@ class System:
             self.UseSecondKindIntEquation=0
 
         # self.mobility_matrix = np.zeros()
+
+
+
+    def construct_mobility_matrix(self):
+        """
+        Construct the mobility matrix of the geometry in the mesh interacting with itself 
+        """
+        M = self.evaluation_points.shape[0]        # number of collocation points
+        N = self.mesh.elements
+
+
+        # keep in mind that the amount of rows depend on collocation points
+        # which in this case is the same as the elements but that is not always the case
+        MATRIX          = np.zeros((3*M,3*N))
+        surface_matrix  = np.zeros((3,3*N))
+        torque_matrix   = np.zeros((3,3*N))
+        r_cross_matrix  = np.zeros((3*M,3))
+
+        for i in range(N):
+            if i % self.AmountofPanelsBeforePrinting == 0:
+                print(f"computing panel {i} out of {N}")
+            panel=self.mesh.panels[1:,:,i]
+
+            singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
+            
+            MATRIX[0:3*M, 3*i:3*i+3] = singularity_contribution.reshape(3*M, 3)
+
+            surface_matrix[:,3*i:3*i+3]  = area * np.eye(3)
+
+            torque_matrix[:,3*i:3*i+3]   = torque_tensor
+
+            r_cross_matrix[3*i:3*i+3,:]  = r_cross
+
+        MATRIX= self.UseSecondKindIntEquation*(0.5*np.eye(3*N)) + MATRIX
+
+        
+        self.MATRIX          = MATRIX
+        self.surface_matrix  = surface_matrix
+        self.torque_matrix   = torque_matrix
+        self.r_cross         = r_cross_matrix
+
+        return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
+    
         
     def solve(self,
               U:np.ndarray,
-              W:np.ndarray):
+              W:np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Solve the linear system M*psi=U, and return the double layer density,
+        the total force, and the total torque on the body by the boundary condition U.
+        """
         
-        self.MATRIX, self.surface_matrix, self.torque_matrix=self.construct_mobility_matrix()
-
-        r, c = np.shape(self.MATRIX)
+        # self.MATRIX, self.surface_matrix, self.torque_matrix, self.r_cross=self.construct_mobility_matrix()
         
-        U_t, U_r = U_colloc(U, W, self.mesh.centroids,int(r/3))
-        # print(U_t)
-        RHS = U_t + U_r
+        RHS = self.set_boundary_condition(U,W)
 
         # lu, piv = lu_factor(self.MATRIX)
         # psi = lu_solve((lu, piv), -RHS)
@@ -52,6 +95,48 @@ class System:
         self.torque  = self.torque_matrix @ self.psi
 
         return self.psi, self.force, self.torque
+    
+    def construct_grand_mobility_matrix(self):
+        
+        r, c = np.shape(self.MATRIX)        
+
+        # Generate r/3 identity matrices stacked vertically (r,3) matrix
+        V = np.tile(np.eye(3), int(r/3)).T
+        A = self.r_cross
+
+        F = self.surface_matrix
+        T = self.torque_matrix
+
+        M=np.block([
+            [self.MATRIX, V, A],
+            [F, np.zeros((3,6))],
+            [T, np.zeros((3,6))]
+        ])
+        return M
+    
+    def set_boundary_condition(self,
+                               U:np.ndarray,
+                               W:np.ndarray)->np.ndarray:
+        
+        r, c = np.shape(self.MATRIX)
+        U_t, U_r, _ =U_colloc(U,W, self.mesh.centroids,int(r/3))
+
+        return U_t+U_r
+    
+    def set_shear_boundary_condition(self,
+                               U        :np.ndarray,
+                               W        :np.ndarray,
+                               E        :np.ndarray)->np.ndarray:
+        
+        r, c = np.shape(self.MATRIX)
+        U_t, U_r, U_e =U_colloc(U,W, self.mesh.centroids,int(r/3), E)
+
+        return U_t+U_r+U_e
+
+        
+
+
+
     
     def plot_singularity_density(self):
         """
@@ -87,16 +172,17 @@ class System:
 
         # keep in mind that the amount of rows depend on collocation points
         # which in this case is the same as the elements but that is not always the case
-        MATRIX = np.zeros((3*M,3*N))
-        surface_matrix=np.zeros((3,3*N))
-        torque_matrix=np.zeros((3,3*N))
+        MATRIX          = np.zeros((3*M,3*N))
+        surface_matrix  = np.zeros((3,3*N))
+        torque_matrix   = np.zeros((3,3*N))
+        r_cross_matrix  = np.zeros((3*M,3))
 
         for i in range(N):
             if i % self.AmountofPanelsBeforePrinting == 0:
                 print(f"computing panel {i} out of {N}")
             panel=self.mesh.panels[1:,:,i]
 
-            singularity_contribution, area, torque_tensor = self.calc_mobility_contribution(panel)
+            singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
             
             MATRIX[0:3*M, 3*i:3*i+3] = singularity_contribution.reshape(3*M, 3)
 
@@ -104,16 +190,24 @@ class System:
 
             torque_matrix[:,3*i:3*i+3]   = torque_tensor
 
+            r_cross_matrix[3*i:3*i+3,:]  = r_cross
+
         MATRIX= self.UseSecondKindIntEquation*(0.5*np.eye(3*N)) + MATRIX
 
-        return MATRIX, surface_matrix, torque_matrix
+        
+        self.MATRIX          = MATRIX
+        self.surface_matrix  = surface_matrix
+        self.torque_matrix   = torque_matrix
+        self.r_cross         = r_cross_matrix
+
+        return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
         
 
             
         
 
     def calc_mobility_contribution(self,
-                                   panel:np.ndarray)->tuple[np.ndarray, float, np.ndarray]: 
+                                   panel:np.ndarray)->tuple[np.ndarray, float, np.ndarray, np.ndarray]: 
         """
         Calculate the contribution to the mobility matrix of an element on all collocation points.
         By vectorising the collocation points, the singularity contributions are calculated at the same time
@@ -132,7 +226,9 @@ class System:
                           The area of the current element calculated with quadrature.
         torque_tensor   : (3,3) array representing the torque on that element.
                           This array corresponds to the torque matrix on the current element.
-                          To calculate the full torque on the mesh you multiply it with the double layer potential (psi).
+                          To calculate the full torque on the mesh you multiply it with the double layer density (psi).
+        r_cross         : (3,3) array representing the cross product of r with an arbitrary vector.
+                          To determine the RBM, we need to calculate the cross product of r=(y-Y_c) with the double layer density.
         """
 
         X,Y,Z,centroid =  find_panel_data(panel)  #from utils.py
@@ -199,7 +295,7 @@ class System:
         # Calculate the area of the element using the quadrature weights
         area = Wx @ np.ones(np.shape(Xq)) @ Wy
 
-        # Convert the coordinates of the element centroid to element coordinates
+        # Convert the coordinates of the element centroid to element coordinates from the origin
         cent_pt = coord @ centroid 
 
         xx = cent_pt[0] + Xq       # shape (Q,Q)
@@ -220,7 +316,20 @@ class System:
 
         torque_tensor = coord.T @ torque_tensor @ coord
 
-        return A_global, area, torque_tensor
+        # Calculate [r]x which is the matrix representation of the cross product of r with an arbitrary vector.
+        r_cross=np.zeros((3,3))
+
+        r_cross[0,1] =  cent_pt[2]
+        r_cross[0,2] = -cent_pt[1]
+        r_cross[1,2] =  cent_pt[0]
+
+        r_cross[1,0] = -r_cross[0,1]
+        r_cross[2,0] = -r_cross[0,2]
+        r_cross[2,1] = -r_cross[1,2]
+
+        r_cross = coord.T @ r_cross @ coord
+
+        return A_global, area, torque_tensor, r_cross
     
 
     

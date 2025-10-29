@@ -62,8 +62,9 @@ def find_panel_data(panel:np.ndarray)->tuple:
 
 def U_colloc(U          :np.ndarray,
              W          :np.ndarray,
-             centroids   :np.ndarray,
-             r          :int)->tuple[np.ndarray,np.ndarray]:
+             centroids  :np.ndarray,
+             r          :int,
+             E          :np.ndarray=np.zeros((3,3)))->tuple[np.ndarray,np.ndarray]:
     """
     Calculate translational and rotational velocity at each collocation point.
 
@@ -77,6 +78,8 @@ def U_colloc(U          :np.ndarray,
         XYZ coordinates of centroids of cell mesh [micron].
     r : int
         Number of rows / collocation points.
+    E : np.ndarray, shape (3,3)
+        Rate of strain tensor.
 
     Returns
     -------
@@ -94,4 +97,11 @@ def U_colloc(U          :np.ndarray,
     U_r[1::3] = -W[0]*centroids[:,2] + W[2]*centroids[:,0]
     U_r[2::3] =  W[0]*centroids[:,1] - W[1]*centroids[:,0]
 
-    return U_t, U_r
+    # NEED TO ADJUST FOR GENERAL CASE
+
+    
+    U_e = (E @ centroids.T).T
+    U_e = U_e.flatten() 
+
+    
+    return U_t, U_r, U_e
