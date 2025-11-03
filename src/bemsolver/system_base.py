@@ -16,23 +16,16 @@ from .quadrature import triquad
 @dataclass
 class BaseSystem(ABC):
 
+
     mesh:Mesh
-    evaluation_points: Optional[np.ndarray] = field(default=None)
 
     def __post_init__(self):
-        # If no collocation points are given, use the element centroids as collocation points
-        if self.evaluation_points is None:
-            self.AmountofPanelsBeforePrinting=10
-            self.evaluation_points = self.mesh.centroids
+        self.AmountofPanelsBeforePrinting=10
+        self.evaluation_points = self.mesh.centroids
 
-            # If the collocation points are the same as the element centroids,
-            # we need to use the integral equation of the second kind from Keaveny & Shelley
-            self.UseSecondKindIntEquation=1
-        else:
-            self.AmountofPanelsBeforePrinting=100
-            self.UseSecondKindIntEquation=0
-
-        # self.mobility_matrix = np.zeros()
+        # If the collocation points are the same as the element centroids,
+        # we need to use the integral equation of the second kind from Keaveny & Shelley
+        self.UseSecondKindIntEquation=True
 
 
 
@@ -58,7 +51,7 @@ class BaseSystem(ABC):
 
             singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
             
-            MATRIX[0:3*M, 3*i:3*i+3] = singularity_contribution.reshape(3*M, 3)
+            MATRIX[0:3*M, 3*i:3*i+3]     = singularity_contribution.reshape(3*M, 3)
 
             surface_matrix[:,3*i:3*i+3]  = area * np.eye(3)
 
@@ -66,7 +59,9 @@ class BaseSystem(ABC):
 
             r_cross_matrix[3*i:3*i+3,:]  = r_cross
 
-        MATRIX= self.UseSecondKindIntEquation*(0.5*np.eye(3*N)) + MATRIX
+        if self.UseSecondKindIntEquation:
+            MATRIX= 0.5*np.eye(3*N) + MATRIX
+            
 
         
         self.MATRIX          = MATRIX
@@ -87,48 +82,6 @@ class BaseSystem(ABC):
 
         return U_t+U_r+U_e
         
-
-
-
-    def construct_mobility_matrix(self):
-        """
-        Construct the mobility matrix of the geometry in the mesh interacting with itself 
-        """
-        M = self.evaluation_points.shape[0]        # number of collocation points
-        N = self.mesh.elements
-
-
-        # keep in mind that the amount of rows depend on collocation points
-        # which in this case is the same as the elements but that is not always the case
-        MATRIX          = np.zeros((3*M,3*N))
-        surface_matrix  = np.zeros((3,3*N))
-        torque_matrix   = np.zeros((3,3*N))
-        r_cross_matrix  = np.zeros((3*M,3))
-
-        for i in range(N):
-            if i % self.AmountofPanelsBeforePrinting == 0:
-                print(f"computing panel {i} out of {N}")
-            panel=self.mesh.panels[1:,:,i]
-
-            singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
-            
-            MATRIX[0:3*M, 3*i:3*i+3] = singularity_contribution.reshape(3*M, 3)
-
-            surface_matrix[:,3*i:3*i+3]  = area * np.eye(3)
-
-            torque_matrix[:,3*i:3*i+3]   = torque_tensor
-
-            r_cross_matrix[3*i:3*i+3,:]  = r_cross
-
-        MATRIX= self.UseSecondKindIntEquation*(0.5*np.eye(3*N)) + MATRIX
-
-        
-        self.MATRIX          = MATRIX
-        self.surface_matrix  = surface_matrix
-        self.torque_matrix   = torque_matrix
-        self.r_cross         = r_cross_matrix
-
-        return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
         
 
             
