@@ -37,12 +37,13 @@ for i, file in enumerate(files):
     b_arr[i]=mesh.b
 
     sys=BEM.System(mesh)
+    sys.construct_mobility_matrix()
 
     psi, force, torque = sys.solve(U,W)
 
     force_x[i]=force[0]
 
-np.savetxt("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/prolate-spheroids/force_vs_x.txt",
+np.savetxt("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/drag/prolate-spheroids/force_vs_x_PM.txt",
             np.vstack((b_arr,force_x)).T)
 
 

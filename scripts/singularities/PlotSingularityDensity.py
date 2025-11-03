@@ -1,7 +1,26 @@
 
 import numpy as np
 import bemsolver as BEM
+import matplotlib as mpl
 
+
+# # Set tick direction globally
+# mpl.rcParams['xtick.direction'] = 'in'
+# mpl.rcParams['ytick.direction'] = 'in'
+# mpl.rcParams['xtick.top'] = True
+# mpl.rcParams['ytick.right'] = True
+
+# mpl.rcParams['xtick.minor.visible'] = True
+# mpl.rcParams['ytick.minor.visible'] = True
+
+import os
+os.environ["PATH"] += ":/usr/bin"
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams["xtick.labelsize"]=13
+mpl.rcParams["ytick.labelsize"]=13
+mpl.rcParams["axes.labelsize"]=15
+mpl.rcParams["axes.titlesize"]=20
+mpl.rcParams["legend.fontsize"]=13
 
 
 
@@ -26,7 +45,7 @@ W[2] = 0
     
 mesh=BEM.Mesh(path)
 
-sys=BEM.System(mesh)
+sys=BEM.ResistanceProblem(mesh)
 
 psi, force, torque = sys.solve(U,W)
 
