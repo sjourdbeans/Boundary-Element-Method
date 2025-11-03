@@ -48,7 +48,7 @@ class Mesh:
         self.x_min=np.min(self.centroids[:,0])
 
         # XG is the center of the centerline
-        self.parameters={"XG":(self.x_max-self.x_min)/2,
+        self.parameters={"XG":(self.x_max+self.x_min)/2,
                          "line_scale":0.9}
 
         print("Loading complete!")
