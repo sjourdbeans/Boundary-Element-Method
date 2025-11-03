@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.io import savemat
+import trimesh
 
 # -------- utilities --------
 def normalize_rows(v):
@@ -20,7 +21,7 @@ def build_panels(p, t):
     return panels
 
 # -------- rock-solid icosphere --------
-def icosphere(subdiv=2):
+def icosphere(subdiv=2,pole_density=1):
     """Return unit-sphere vertices p (N,3) and triangular faces t (M,3)."""
     phi = (1 + np.sqrt(5.0)) / 2.0
     verts = [
@@ -28,6 +29,9 @@ def icosphere(subdiv=2):
         [0, -1,  phi], [0,  1,  phi], [0, -1, -phi], [0,  1, -phi],
         [phi, 0, -1], [phi, 0,  1], [-phi, 0, -1], [-phi, 0,  1]
     ]
+    verts = np.asarray(verts, float)
+    verts[:, 0] *= pole_density
+
     verts = normalize_rows(np.asarray(verts, float))
     faces = np.array([
         [0,11,5], [0,5,1], [0,1,7], [0,7,10], [0,10,11],
@@ -73,26 +77,35 @@ def icosphere(subdiv=2):
 
 if __name__ == "__main__":
 
-    a_arr=np.arange(0.05,0.1,0.01)
+    # a_arr=np.arange(0.1,1,0.05)
     # -------- prolate spheroid elongated along x (uniform mesh) --------
-    # a = 4   # short radii (y,z)
-    for a in a_arr:
-        c = 1  # long radius (x)
-        subdiv = 3  # 20*4^2 = 320 triangles
+    a = 0.5   # short radii (y,z)
+    # for a in a_arr:
+    c = 2  # long radius (x)
+    subdiv = 2  # 20*4^2 = 320 triangles
 
 
-        p_unit, t = icosphere(subdiv=subdiv)
-        p = p_unit * np.array([c, a, a])  # scale to spheroid
+    p_unit, t = icosphere(subdiv=subdiv,pole_density=1)
 
-        panels = build_panels(p, t)
-        nz=301
-        x = np.linspace(-c, c, nz)  # axial coordinate along the long axis (x)
+    # mesh = trimesh.Trimesh(vertices=p_unit, faces=t)
+    # mesh_simplified = mesh.simplify_quadric_decimation(face_count=800)
 
-        r = a * np.sqrt(np.clip(1.0 - (x/c)**2, 0.0, 1.0))  # radius in the yz-plane
-        pv = np.column_stack([x,r]) 
+    # a, c = 0.5, 2
+    # p = mesh_simplified.vertices * np.array([c, a, a])
+    # t = mesh_simplified.faces
 
-        print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
+    p = p_unit * np.array([c, a, a])  # scale to spheroid
 
-        # from scipy.io import savemat 
-        # Can be changed to npz file later
-        savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid-variation/spheroid_mesh_b={round(a,3)}.mat", {"p": p, "t": t+1, "panels": panels, "pv": pv})
+    panels = build_panels(p, t)
+    nz=301
+    x = np.linspace(-c, c, nz)  # axial coordinate along the long axis (x)
+
+    r = a * np.sqrt(np.clip(1.0 - (x/c)**2, 0.0, 1.0))  # radius in the yz-plane
+    pv = np.column_stack([x,r]) 
+
+    print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
+
+    # from scipy.io import savemat 
+    # Can be changed to npz file later
+    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/jeffrey-orbits-fine/jeffrey_mesh_b={round(a,3)}.mat",
+                {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
