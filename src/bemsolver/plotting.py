@@ -26,7 +26,11 @@ def plot_mesh(
     edge_alpha : float
         Edge transparency.
     """
-    panels = [mesh.panels[1:, :, k] for k in range(mesh.elements)]
+    if mesh.is_mat:
+        panels = [mesh.panels[1:, :, k] for k in range(mesh.elements)]
+    else:
+        panels = [mesh.panels[k] for k in range(mesh.elements)]
+
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -113,14 +117,23 @@ def plot_panels_stokes(panels, f):
     # plt.show()
 
 
-def plot_vector_field(x, y, U_magnitude, x_quiver, y_quiver, Ux_quiver, Uy_quiver, quiver, view):
+def plot_vector_field(x, y, U_magnitude, x_quiver, y_quiver, Ux_quiver, Uy_quiver, isosurface, quiver=True,vmax_factor=1.5, vector_scale=50, view='xy'):
+    import matplotlib.colors as colors
 
+    x_surface, r_surface = isosurface.T
+    
+
+    norm = colors.Normalize(vmin=0, vmax=np.nanmax(U_magnitude)*vmax_factor)
     fig = plt.figure(figsize=(8, 4))
-    plt.pcolormesh(x, y, U_magnitude, shading='auto', cmap='viridis',vmax= np.average(U_magnitude)*2)
-    if quiver:
+    c = plt.pcolormesh(x, y, U_magnitude, shading='auto', cmap='viridis',norm=norm)
+                   
+    
+    plt.plot(x_surface, r_surface, color='r')
+
+    if quiver: 
         plt.quiver(x_quiver, y_quiver, Ux_quiver, Uy_quiver,
-                    color='white', scale=50)
-    plt.colorbar(label=r'$|\mathbf{U}_{field}|$')
+                    color='white', scale=vector_scale, headlength=4, headwidth=2)
+    plt.colorbar(c,label=r'$|\mathbf{U}_{\text{field}}|$ [$\mu$m/s]')
     plt.xlabel(f'${view[0]}$ [$\\mu$m]')
     plt.ylabel(f'${view[1]}$ [$\\mu$m]')
     plt.title('Flow magnitude and direction')
