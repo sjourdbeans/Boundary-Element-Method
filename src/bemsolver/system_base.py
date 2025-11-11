@@ -47,7 +47,10 @@ class BaseSystem(ABC):
         for i in range(N):
             if i % self.AmountofPanelsBeforePrinting == 0:
                 print(f"computing panel {i} out of {N}")
-            panel=self.mesh.panels[1:,:,i]
+            if self.mesh.is_mat:
+                panel=self.mesh.panels[1:,:,i]
+            else:
+                panel=self.mesh.panels[i]
 
             singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
             
@@ -76,6 +79,7 @@ class BaseSystem(ABC):
                                U        :np.ndarray,
                                W        :np.ndarray,
                                E        :np.ndarray=np.zeros((3,3)))->np.ndarray:
+        
         
         r, c = np.shape(self.MATRIX)
         U_t, U_r, U_e =U_colloc(U,W, self.mesh.centroids,int(r/3), E)
@@ -112,7 +116,7 @@ class BaseSystem(ABC):
                           To determine the RBM, we need to calculate the cross product of r=(y-Y_c) with the double layer density.
         """
 
-        X,Y,Z,centroid =  find_panel_data(panel)  #from utils.py
+        X,Y,Z,centroid, _ =  find_panel_data(panel)  #from utils.py
 
         # Assemble the coordinate frame
         coord = np.vstack([X,Y,Z])
@@ -146,7 +150,7 @@ class BaseSystem(ABC):
 
         
         # All collocation points transformed to the element reference frame
-        Col_all = (coord @ self.evaluation_points.T).T
+        Col_all = (coord @ (self.evaluation_points.T)).T
 
 
         
@@ -168,7 +172,7 @@ class BaseSystem(ABC):
         S_all, G_all = line_singularity_vectorized(Col_all, Int, coord, R, Xq, Yq, Wx, Wy)
 
         # Calculate the the total singularity contribution of an element on all collocation points 
-        A_all =  (3/(4*np.pi)) * T_all +(1/(8*np.pi)) * ( S_all + G_all ) # 
+        A_all =  (3/(4*np.pi)) * T_all +  (1/(8*np.pi)) * ( S_all + G_all ) # 
 
         # Transform back into the original coodinates
         A_global = np.einsum('ij,mjk,kl->mil', coord.T, A_all, coord)
@@ -177,7 +181,7 @@ class BaseSystem(ABC):
         area = Wx @ np.ones(np.shape(Xq)) @ Wy
 
         # Convert the coordinates of the element centroid to element coordinates from the origin
-        cent_pt = coord @ centroid 
+        cent_pt = coord @ (centroid)   
 
         xx = cent_pt[0] + Xq       # shape (Q,Q)
         yy = cent_pt[1] + Yq       # shape (Q,Q)

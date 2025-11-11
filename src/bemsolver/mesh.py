@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 
-from .utils import find_panel_data
+from .utils import find_panel_data, fix_gmsh_normals
 # warnings.simplefilter("once", category=UserWarning)
 
 
@@ -25,18 +25,43 @@ class Mesh:
         
         print("Loading meshfile ...")
 
-        # Maybe add a condition for filetypes like npz or other common mesh types.
-        self.meshfile       =loadmat(self.filepath)
+        self.a = None
+        self.b = None
 
-        self.isosurface     =self.meshfile["pv"]      # Analytic description of the surface of the mesh, i.e. the distance from the centerline
-        self.panels         =self.meshfile["panels"]  # Shape of panels is (M x 3 x N)
+        if self.filepath.split(".")[-1]=="mat":
+            self.is_mat=True
+        # Maybe add a condition for filetypes like npz or other common mesh types.
+            self.meshfile       =loadmat(self.filepath)
+
+            self.isosurface     =self.meshfile["pv"]      # Analytic description of the surface of the mesh, i.e. the distance from the centerline
+            self.panels         =self.meshfile["panels"]  # Shape of panels is (M x 3 x N)
                                                       # with M being amount of vertices+1 and N the amount of elements
                                                       # To select the first panel use self.panels[:,:,0]
+            self.a=self.meshfile.get("a",None)            # Major axis of ellipsoid
+            self.b=self.meshfile.get("b",None) 
 
-        self.elements   =np.shape(self.panels)[2]     # Amount of elements  
-        
-        self.a=self.meshfile.get("a",None)            # Major axis of ellipsoid
-        self.b=self.meshfile.get("b",None)            # Minor axis of ellipsoid
+            self.elements   =np.shape(self.panels)[2]
+
+        elif self.filepath.split(".")[-1]=="msh":
+            import gmsh
+            gmsh.initialize()
+            gmsh.open(self.filepath)
+
+            node_tags, node_coords, _ = gmsh.model.mesh.getNodes()
+            nodes = node_coords.reshape(-1, 3)
+            elem_types, elem_tags, elem_node_tags = gmsh.model.mesh.getElements(2)
+            triangles = elem_node_tags[0].reshape(-1, 3).astype(int) - 1
+
+            gmsh.finalize()
+
+            triangles_fixed, normals = fix_gmsh_normals(nodes, triangles)
+            self.is_mat = False
+            
+
+            self.panels = nodes[triangles_fixed]
+            self.elements   = np.shape(self.panels)[0]
+
+                   # Minor axis of ellipsoid
 
         if self.a is None or self.b is None:
             warnings.warn(f"Values for a and b are not stored in meshfile, assign them yourself using 'instance_name.a=value'.",
@@ -44,13 +69,22 @@ class Mesh:
                         stacklevel=3)
 
         self.normals,self.centroids=self.load_panels()
+
+        # Find the center of the mesh (usually (0,0,0))
+        self.center = np.array([(np.max(self.centroids[:,0])+np.min(self.centroids[:,0]))/2,
+                                (np.max(self.centroids[:,1])+np.min(self.centroids[:,1]))/2,
+                                (np.max(self.centroids[:,2])+np.min(self.centroids[:,2]))/2])
+        self.centroids = self.centroids 
+        
         self.x_max=np.max(self.centroids[:,0])
         self.x_min=np.min(self.centroids[:,0])
 
+
         # XG is the center of the centerline
         self.parameters={"XG":(self.x_max+self.x_min)/2,
-                         "line_scale":0.9}
-
+                         "line_scale":0.9}      
+        
+        
         print("Loading complete!")
 
 
@@ -69,8 +103,12 @@ class Mesh:
         centroids=np.zeros((self.elements,3))
 
         for i in range(self.elements):
-            panel=self.panels[1:,:,i]
-            _,_,normal,centroid =       find_panel_data(panel)  #from utils.py
+            if self.is_mat:
+                panel=self.panels[1:,:,i]
+            else:
+                panel=self.panels[i]
+
+            _,_,normal,centroid, _ =       find_panel_data(panel)  #from utils.py
             
             normals[i]      =normal
             centroids[i]    =centroid
