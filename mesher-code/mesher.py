@@ -82,13 +82,22 @@ if __name__ == "__main__":
     a = 0.5   # short radii (y,z)
     # for a in a_arr:
     c = 2  # long radius (x)
-    subdiv = 2  # 20*4^2 = 320 triangles
+    subdiv = 3  # 20*4^2 = 320 triangles
 
+    buffer_factor =0.2
+    delta_x =0.05
+    delta_r =0.1
+    # a+=delta
+    # c+=delta
+
+
+   
+    
 
     p_unit, t = icosphere(subdiv=subdiv,pole_density=1)
 
     # mesh = trimesh.Trimesh(vertices=p_unit, faces=t)
-    # mesh_simplified = mesh.simplify_quadric_decimation(face_count=800)
+    # # mesh_simplified = mesh.simplify_quadric_decimation(face_count=800)
 
     # a, c = 0.5, 2
     # p = mesh_simplified.vertices * np.array([c, a, a])
@@ -97,15 +106,21 @@ if __name__ == "__main__":
     p = p_unit * np.array([c, a, a])  # scale to spheroid
 
     panels = build_panels(p, t)
-    nz=301
-    x = np.linspace(-c, c, nz)  # axial coordinate along the long axis (x)
 
-    r = a * np.sqrt(np.clip(1.0 - (x/c)**2, 0.0, 1.0))  # radius in the yz-plane
-    pv = np.column_stack([x,r]) 
+    nz=201
+    x = np.linspace(-c-delta_x, c+delta_x, nz)  # axial coordinate along the long axis (x)
+    
+
+
+    r = (a+delta_r) * np.sqrt(np.clip(1.0 - (x/(c+delta_x))**2, 0.0, 1.0))  # radius in the yz-plane
+    pv = np.column_stack([x,r])
+    pv = np.vstack((pv,np.column_stack([x[::-1][1:],-r[::-1][1:]])))
 
     print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
 
     # from scipy.io import savemat 
     # Can be changed to npz file later
-    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/jeffrey-orbits-fine/jeffrey_mesh_b={round(a,3)}.mat",
-                {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
+    # savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/fine-b=0.5/jeffrey_mesh_very_fine_b={round(a,3)}.mat",
+    #             {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
+    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/elongated-mesh-fine/elongated_spheroid_N={t.shape[0]}.mat",
+            {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
