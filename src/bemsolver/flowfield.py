@@ -2,6 +2,7 @@ import numpy as np
 from dataclasses import dataclass, field
 
 from .system_base import BaseSystem
+from .utils import U_colloc, points_in_polygon
 
 @dataclass
 class FlowStokes(BaseSystem):
@@ -57,7 +58,9 @@ class FlowStokes(BaseSystem):
 
     def calc_vector_field(self, 
                           psi        : np.ndarray,
-                          U_boundary : np.ndarray):
+                          U          : np.ndarray,
+                          W          : np.ndarray,
+                          E          : np.ndarray):
         
         xg, yg, zg = self.evaluation_points.T
         Ng = np.shape(xg)[0]
@@ -73,13 +76,21 @@ class FlowStokes(BaseSystem):
         # Find which points are within the mesh
         r_local = np.interp(xg, x_surface, r_surface) 
 
-        self.inside_mask = (
-            (xg >= x_surface.min()) &
-            (xg <= x_surface.max()) &
-            (r <= r_local)
-        )
+        # self.inside_mask = (
+        #     (xg >= x_surface.min()-0.02) &
+        #     (xg <= x_surface.max()+0.02) &
+        #     (r <= r_local+0.1)
+        # )
 
-        U_field = U_field.reshape(Ng, 3) - U_boundary 
+        self.inside_mask = points_in_polygon(xg, r, x_surface, r_surface)
+
+        rows, columns = np.shape(self.MATRIX)
+        U_t, U_r, U_e =U_colloc(U,W, self.evaluation_points,int(rows/3), E)
+        U_boundary = U_t + U_r + U_e
+
+        U_field =U_field + U_boundary
+
+        U_field = U_field.reshape(Ng, 3) #- U_boundary 
         U_field[self.inside_mask,:] = 0
 
         return U_field
@@ -88,9 +99,18 @@ class FlowStokes(BaseSystem):
                           x                 :np.ndarray, 
                           y                 :np.ndarray, 
                           U_field           :np.ndarray,
-                          view              :str  = 'xy',
-                          quiver            :bool = True,
-                          quiver_density    :int  = 18):
+                          quiver_density    :int  = 18,
+                          **kwargs):
+        """
+        **kwargs:
+
+        quiver: bool = True
+
+        vmax_factor
+    
+        vector_scale: float or int The scale of the vectors in the plot
+        view  : 'xy' view of the plot. Not supported yet
+        """
         
         Nx = len(x)
         Ny = len(y)
@@ -119,7 +139,7 @@ class FlowStokes(BaseSystem):
 
         from . import plotting 
 
-        return plotting.plot_vector_field(x,y,U_magnitude,x_quiver,y_quiver,Ux_quiver,Uy_quiver,quiver,view)
+        return plotting.plot_vector_field(x,y,U_magnitude,x_quiver,y_quiver,Ux_quiver,Uy_quiver, self.mesh.isosurface,**kwargs)
 
 
 

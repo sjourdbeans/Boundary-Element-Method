@@ -33,6 +33,7 @@ def find_panel_data(panel:np.ndarray)->tuple:
             Y=panel[1]-panel[3] 
 
         Z=np.cross(X,Y)    
+        area =0.5* np.linalg.norm(Z)
 
         # Normalise X and Z vectors and calculate the corresponding orthonormal Y axis
         Z   =Z/np.linalg.norm(Z)
@@ -57,7 +58,7 @@ def find_panel_data(panel:np.ndarray)->tuple:
         # Compute the panel centroid
         centroid = panel[0] + xc * X + yc * Y
         
-        return X,Y,Z, centroid
+        return X,Y,Z, centroid, area
 
 
 def U_colloc(U          :np.ndarray,
@@ -92,7 +93,7 @@ def U_colloc(U          :np.ndarray,
     U_t = np.tile(U, r)
 
     # Rotational velocity: cross product W x centroid
-    U_r = np.empty(3*r)
+    U_r = np.zeros(3*r)
     U_r[0::3] =  W[1]*centroids[:,2] - W[2]*centroids[:,1]
     U_r[1::3] = -W[0]*centroids[:,2] + W[2]*centroids[:,0]
     U_r[2::3] =  W[0]*centroids[:,1] - W[1]*centroids[:,0]
@@ -101,7 +102,67 @@ def U_colloc(U          :np.ndarray,
 
     
     U_e = (E @ centroids.T).T
+
     U_e = U_e.flatten() 
 
     
     return U_t, U_r, U_e
+
+
+
+def points_in_polygon(x_points, y_points, poly_x, poly_y):
+    """Return a boolean mask of which (x_points, y_points) lie inside a closed polygon."""
+    n = len(poly_x)
+    inside = np.zeros_like(x_points, dtype=bool)
+    for i in range(n):
+        j = (i - 1) % n
+        xi, yi = poly_x[i], poly_y[i]
+        xj, yj = poly_x[j], poly_y[j]
+        # Check if the horizontal ray crosses this polygon edge
+        intersect = ((yi > y_points) != (yj > y_points)) & \
+                    (x_points < (xj - xi) * (y_points - yi) / (yj - yi + 1e-15) + xi)
+        inside ^= intersect
+    return inside
+
+
+def fix_gmsh_normals(nodes, triangles, center=None):
+    """
+    Ensures all triangle normals point outward from the given center.
+    Parameters
+    ----------
+    nodes : (N,3) array of node coordinates
+    triangles : (M,3) array of vertex indices (zero-based)
+    center : (3,) array, optional center of object (default = mean of all nodes)
+    Returns
+    -------
+    triangles_out : (M,3) array with vertex ordering corrected
+    normals_out : (M,3) array of outward normals
+    """
+    if center is None:
+        center = nodes.mean(axis=0)
+
+    tri_coords = nodes[triangles]
+    v1 = tri_coords[:,1] - tri_coords[:,0]
+    v2 = tri_coords[:,2] - tri_coords[:,0]
+    normals = np.cross(v1, v2)
+    normals /= np.linalg.norm(normals, axis=1)[:, None]
+
+    centroids = tri_coords.mean(axis=1)
+    to_centroid = centroids - center
+    dot_sign = np.einsum('ij,ij->i', normals, to_centroid)
+
+    inward = dot_sign > 0
+
+    # 🔧 Corrected swap
+    tmp = triangles[inward, 1].copy()
+    triangles[inward, 1] = triangles[inward, 2]
+    triangles[inward, 2] = tmp
+
+    # Recompute normals after flipping
+    tri_coords = nodes[triangles]
+    v1 = tri_coords[:,1] - tri_coords[:,0]
+    v2 = tri_coords[:,2] - tri_coords[:,0]
+    normals = np.cross(v1, v2)
+    normals /= np.linalg.norm(normals, axis=1)[:, None]
+
+    return triangles, normals
