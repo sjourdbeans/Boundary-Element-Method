@@ -170,30 +170,12 @@ for evalindex = 1:numevals
 
     % X coordinates of the quadrature points from the center of the line distribution (??).
     R     = p.e*(centroid(1)+Xq*coord(1,1)+Yq*coord(2,1)-p.XG) + p.XG;
-    % Rs     = p.e*(centroid(1)-p.XG) + p.XG;
 
     Rx    = R*coord(1,1);
     Ry    = R*coord(2,1);
     Rz    = R*coord(3,1);
 
-    %=============
-    % Rs     = p.e*(centroid(1)-p.XG) + p.XG;
-
-    % Rsx    = Rs*coord(1,1);
-    % Rsy    = Rs*coord(2,1);
-    % Rsz    = Rs*coord(3,1);
-
-    % cent_pt   = (coord * centroid.').'; % (coord integration variable in local coord syst)
-    % xx    =  cent_pt(1)-Rsx;  
-    % yy    =  cent_pt(2)-Rsy;  
-    % zz    =  cent_pt(3)-Rsz;
-
-    % LR(1,2) =-zz;
-    % LR(1,3) = yy;
-    % LR(2,3) =-xx;
-    % LR(2,1) =-LR(1,2);
-    % LR(3,1) =-LR(1,3);
-    % LR(3,2) =-LR(2,3);
+  
 
     %=============
 
