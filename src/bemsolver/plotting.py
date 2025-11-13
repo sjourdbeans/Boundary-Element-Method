@@ -117,13 +117,13 @@ def plot_panels_stokes(panels, f):
     # plt.show()
 
 
-def plot_vector_field(x, y, U_magnitude, x_quiver, y_quiver, Ux_quiver, Uy_quiver, isosurface, quiver=True,vmax_factor=1.5, vector_scale=50, view='xy'):
+def plot_vector_field(x, y, U_magnitude, x_quiver, y_quiver, Ux_quiver, Uy_quiver, isosurface, vmax, quiver=True, vector_scale=50, view='xy'):
     import matplotlib.colors as colors
 
     x_surface, r_surface = isosurface.T
     
 
-    norm = colors.Normalize(vmin=0, vmax=np.nanmax(U_magnitude)*vmax_factor)
+    norm = colors.Normalize(vmin=0, vmax=vmax)
     fig = plt.figure(figsize=(8, 4))
     c = plt.pcolormesh(x, y, U_magnitude, shading='auto', cmap='viridis',norm=norm)
                    
