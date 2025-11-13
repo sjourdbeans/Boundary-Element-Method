@@ -37,8 +37,7 @@ initial_position    = np.array([0,0,0])
 
 sys=bem.MobilityProblem(mesh,flow_function=find_flow,
                         initial_position=initial_position,
-                        initial_orientation=initial_orientation,
-                        particle_velocity=1)
+                        initial_orientation=initial_orientation)
 dt=0.01
 T=100
 
