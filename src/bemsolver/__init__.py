@@ -7,7 +7,7 @@ BEM Stokes swimmer solver.
 
 from .mesh import Mesh
 from .stokes_problems import MobilityProblem, ResistanceProblem
-from.flowfield import FlowStokes
+from .flowfield import FlowStokes
 
 
 __all__ = [
