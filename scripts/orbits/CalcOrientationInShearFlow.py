@@ -1,5 +1,6 @@
 import bemsolver as bem
 import numpy as np
+from dataclasses import asdict
 
 gamma_dot=1
 
@@ -43,5 +44,5 @@ T=100
 
 solution = sys.RBM_over_time(T,dt) 
 
-
- 
+datapath ="/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/Shear-flow"
+np.savez(f"{datapath}/solution_T={T}_dt={dt}_shear={gamma_dot}.npz", **asdict(solution))
