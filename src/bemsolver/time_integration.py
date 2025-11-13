@@ -44,6 +44,9 @@ def RK4(RHS :Callable[[np.ndarray], np.ndarray],
 
 
 def rotate_BCs(Q, U, W, E):
+    """
+    Rotate the boundary conditions to particle frame.
+    """
 
     U_body = Q.T @ U
     W_body = Q.T @ W
