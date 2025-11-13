@@ -5,10 +5,9 @@ from scipy.linalg import lu_factor, lu_solve
 from scipy.spatial.transform import Rotation as R
 
 
-from .mesh import Mesh
 from .system_base import BaseSystem
 from .time_integration import vector_to_quaternion_from_x, rotate_BCs, omega_to_quat_dot, RK4
-
+from .SaveData import Solution
 
 
 
@@ -438,12 +437,7 @@ class MobilityProblem(BaseSystem):
         return psi, u, omega
 
 
-@dataclass
-class Solution:
-    """
-    Dataclass to store solutions over time
-    """
-    
+  
 
     
     

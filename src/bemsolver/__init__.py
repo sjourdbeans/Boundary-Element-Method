@@ -8,13 +8,15 @@ BEM Stokes swimmer solver.
 from .mesh import Mesh
 from .stokes_problems import MobilityProblem, ResistanceProblem
 from .flowfield import FlowStokes
+from .SaveData import Solution
 
 
 __all__ = [
     "Mesh",
     "MobilityProblem",
     "ResistanceProblem",
-    "FlowStokes"
+    "FlowStokes",
+    "Solution"
 ]
 
 __version__ = "0.1.0"
