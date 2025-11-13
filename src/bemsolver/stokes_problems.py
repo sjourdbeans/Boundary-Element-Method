@@ -9,6 +9,10 @@ from .mesh import Mesh
 from .system_base import BaseSystem
 from .time_integration import vector_to_quaternion_from_x, rotate_BCs, omega_to_quat_dot, RK4
 
+
+
+
+
 @dataclass
 class ResistanceProblem(BaseSystem):
     """
@@ -61,7 +65,7 @@ class ResistanceProblem(BaseSystem):
     def solve(self,
               U:np.ndarray,
               W:np.ndarray,
-              E:np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
+              E:np.ndarray = np.zeros((3,3)))->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Solve the linear system M*psi=U, and return the double layer density,
         the total force, and the total torque on the body by the boundary condition U.
@@ -136,7 +140,7 @@ class MobilityProblem(BaseSystem):
                           Initial position of the particle [x, y, z]
     initial_orientation : (optional) numpy array default is [0, 0, 0]
                           Initial orientation unit vector of the particle [p_x, p_y, p_z] default is [1, 0, 0]
-    particle_velocity   : (optional) numpy array default is [0, 0, 0]
+    particle_velocity   : (optional) float or integer default is 0
                           If the particle has a constant velocity in the direction of its orientation,
                           this can be set. Overall unnecessary if the particle will be self propelled.
                           
@@ -192,7 +196,7 @@ class MobilityProblem(BaseSystem):
     initial_position    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))  
     initial_orientation :np.ndarray = field(default_factory=lambda: np.array([1,0,0]))
 
-    paricle_velocity    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))
+    particle_velocity    :float|int = field(default_factory=lambda: 0)
 
     
 
@@ -231,6 +235,65 @@ class MobilityProblem(BaseSystem):
         return M
     
 
+    def RBM_over_time(self,
+                      T_max:int|float,
+                      dt    :float):
+        
+        self.construct_grand_mobility_matrix()
+        
+        solution = Solution()
+        
+        
+        solution.time = np.arange(0, T_max+dt, dt)
+        solution.psi  = np.zeros((len(solution.time),3*self.mesh.elements))
+        solution.u    = np.zeros((len(solution.time),3))
+        solution.omega= np.zeros((len(solution.time),3))
+
+
+        X_0 = np.hstack((self.initial_position, self.initial_orientation))
+
+        solution.X    = np.zeros((len(solution.time),6))
+        solution.X[0] = X_0
+
+        
+
+        solution.rotation_matrices    = np.zeros((len(solution.time), 3, 3))
+        solution.quaternions           = np.zeros((len(solution.time), 4))
+
+        q_0                           = vector_to_quaternion_from_x(self.initial_orientation)
+        solution.quaternions[0]        = q_0
+
+        Q_0                           = R.from_quat(q_0, scalar_first=True).as_matrix()
+        solution.rotation_matrices[0] = Q_0
+
+        x, p = X_0[:3], X_0[3:]
+
+        self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q_0)
+        solution.psi[0]   = self.psi
+        solution.u[0]     = self.u
+        solution.omega[0] = self.omega
+
+
+
+        for k, t in enumerate(solution.time[:-1]):            
+
+            x, p, Q = self.solve_RBM(x, p, dt)
+
+            solution.psi[k+1]   = self.psi
+            solution.u[k+1]     = self.u
+            solution.omega[k+1] = self.omega
+
+            solution.X[k+1,:3]   = x
+            solution.X[k+1, 3:]  = p
+
+            solution.quaternions[k+1]        = vector_to_quaternion_from_x(p) 
+            solution.rotation_matrices[k+1] = Q
+
+        return solution
+
+
+    
+
     def solve_RBM(self,
                   x_initial                :np.ndarray,
                   p_initial                :np.ndarray,
@@ -264,11 +327,14 @@ class MobilityProblem(BaseSystem):
         # stack the initial position and quaternion vector into an array for time integration
         Y_0 = np.hstack((x_initial, q_0))
 
+        
         # Time integration using RK4, self.quaternion_RK4 is returns the right hand side of the ODE
         Y_next = RK4(self.quaternion_RK4, Y_0, dt)
 
         # Unpack new timestep
         x, q = Y_next[:3], Y_next[3:]
+
+        self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q)
 
         # Convert quaternion vector to cartesian matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
@@ -320,7 +386,7 @@ class MobilityProblem(BaseSystem):
         # Transform velocity back to the lab frame
         Q = R.from_quat(q, scalar_first=True).as_matrix()
 
-        u_lab = Q @ u
+        u_lab = Q @ (u+self.particle_velocity*np.array([1, 0, 0]))
 
         # Calculate the time derivative of the quaternion vector
         q_dot = omega_to_quat_dot(q, omega)
@@ -372,7 +438,12 @@ class MobilityProblem(BaseSystem):
         return psi, u, omega
 
 
-
+@dataclass
+class Solution:
+    """
+    Dataclass to store solutions over time
+    """
+    
 
     
     

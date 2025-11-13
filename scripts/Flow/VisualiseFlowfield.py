@@ -27,7 +27,7 @@ E = gamma_dot/2*np.array([[0,1,0],
                           [1,0,0],
                           [0,0,0]])
 
-path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/jeffrey-orbits-fine/jeffrey_mesh_b=0.5.mat"
+path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/elongated-mesh-fine/elongated_spheroid_N=320.mat"
 # path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/sphere_refinement/sphere_mesh_h=2.000000e-01.mat"
 mesh= bem.Mesh(path)
 
@@ -57,13 +57,12 @@ sys = bem.ResistanceProblem(mesh)
 psi, force, torque = sys.solve(U,W,E)
 
 
-U_field =interaction.calc_vector_field(psi,U)
+U_field =interaction.calc_vector_field(psi,U, W, E)
 
-fig = interaction.plot_vector_field(x, y, U_field,quiver=True)
+fig = interaction.plot_vector_field(x, y, U_field, vmax= 1.2*np.max(np.linalg.norm(U_field, axis =1)), quiver_density=8)
 fig.set_size_inches(10,8)
 ax = fig.axes[0]
 
-# ax.set_ylabel("hoi")
 plt.show()
 
 
