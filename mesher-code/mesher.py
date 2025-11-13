@@ -82,7 +82,7 @@ if __name__ == "__main__":
     a = 0.5   # short radii (y,z)
     # for a in a_arr:
     c = 2  # long radius (x)
-    subdiv = 3  # 20*4^2 = 320 triangles
+    subdiv = 2  # 20*4^2 = 320 triangles
 
     buffer_factor =0.2
     delta_x =0.05
