@@ -236,19 +236,52 @@ class MobilityProblem(BaseSystem):
 
     def RBM_over_time(self,
                       T_max:int|float,
-                      dt    :float):
+                      dt    :float)->Solution:
+        """
+        Find the Rigid Body Motion of a particle in a given time interval and timestep. The initial position and orientation are
+        can be set when initialising the MobilityProblem instance. This function returns a dataclass with 
+        the solutions.
+
+        Parameters
+        ----------
+        T_max   : integer or float
+                  Set the maximum time to be evaluated
+        dt      : float
+                  Timestep for the simulation
+
+        Returns
+        -------
+        Solution dataclass containing
+
+        - time                
+        - X                   
+        - rotation_matrices   
+        - quaternions         
+        - psi                 
+        - u                   
+        - omega    
         
+        Example
+        -------
+        The solution for X can be accesed by running
+
+        >>> solution = sys.RBM_over_time(T=100, dt=0.01)
+        >>> X = solution.X
+
+
+        """
+        # Construct the grand mobility matrix
         self.construct_grand_mobility_matrix()
         
-        solution = Solution()
-        
+        # Initialise the solution file (dataclass)
+        solution = Solution()        
         
         solution.time = np.arange(0, T_max+dt, dt)
         solution.psi  = np.zeros((len(solution.time),3*self.mesh.elements))
         solution.u    = np.zeros((len(solution.time),3))
         solution.omega= np.zeros((len(solution.time),3))
 
-
+        # Set initial position and orientation vector
         X_0 = np.hstack((self.initial_position, self.initial_orientation))
 
         solution.X    = np.zeros((len(solution.time),6))
@@ -256,28 +289,36 @@ class MobilityProblem(BaseSystem):
 
         
 
-        solution.rotation_matrices    = np.zeros((len(solution.time), 3, 3))
+        solution.rotation_matrices     = np.zeros((len(solution.time), 3, 3))
         solution.quaternions           = np.zeros((len(solution.time), 4))
-
+        
+        # Set initial quaternion
         q_0                           = vector_to_quaternion_from_x(self.initial_orientation)
         solution.quaternions[0]        = q_0
 
+        # Find initial cartesian rotation matrix from quaternion
         Q_0                           = R.from_quat(q_0, scalar_first=True).as_matrix()
         solution.rotation_matrices[0] = Q_0
 
+        # Unpack initial state
         x, p = X_0[:3], X_0[3:]
 
+        # Calculate the singularity distribution, translational-, and angular velocity for the initial state
         self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q_0)
+
+        # Set initial values to solution file
         solution.psi[0]   = self.psi
         solution.u[0]     = self.u
         solution.omega[0] = self.omega
 
 
+        # Loop through time
+        for k, t in enumerate(solution.time[:-1]):    
 
-        for k, t in enumerate(solution.time[:-1]):            
-
+            # Calculate the next timestep
             x, p, Q = self.solve_RBM(x, p, dt)
 
+            # Save values to solution file
             solution.psi[k+1]   = self.psi
             solution.u[k+1]     = self.u
             solution.omega[k+1] = self.omega
@@ -404,7 +445,7 @@ class MobilityProblem(BaseSystem):
         Returns
         -------
         psi     : numpy array (1, N) with N the amount of elements
-                  The solution for the double layer density.
+                  The solution for the singularity distribution density.
         u       : numpy array (1, 3)
                   Translational velocity of the particle
         omega   : numpy array (1, 3)
