@@ -1,0 +1,63 @@
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+from typing import Callable
+
+
+
+def vector_to_quaternion_from_x(p):
+    """
+    Returns a quaternion that rotates the x-axis [1,0,0] into the direction of p.
+    Uses SciPy's Rotation module.
+    Output is in [w, x, y, z] convention.
+    """
+    p = np.array(p, dtype=float)    
+    p /= np.linalg.norm(p)  # ensure it's a unit vector
+
+    # Define reference vector (x-axis)
+    ex = np.array([1.0, 0.0, 0.0])
+
+    # Compute rotation aligning ex → p
+    rot, _ = R.align_vectors([p], [ex])
+
+    # Get quaternion in SciPy's format [x, y, z, w]
+    q = rot.as_quat(scalar_first=True)
+
+    # Reorder to [w, x, y, z] if you prefer that convention
+    # q = np.roll(q_scipy, 1)
+
+    return q
+
+def RK4(RHS :Callable[[np.ndarray], np.ndarray],
+        Y   :np.ndarray,
+        dt  :float)->np.ndarray:
+    """
+    Simple RK4 function that integrates the RHS of the ODE to the next iteration
+    """
+    k1 = RHS(Y)                      
+    k2 = RHS(Y + 0.5*dt*k1)
+    k3 = RHS(Y + 0.5*dt*k2)
+    k4 = RHS(Y + dt*k3)
+
+    Y_next = Y + (dt/6.0) * (k1 + 2.0*k2 + 2.0*k3 + k4)
+    Y_next[3:]/=np.linalg.norm(Y_next[3:])
+    return Y_next
+
+
+def rotate_BCs(Q, U, W, E):
+
+    U_body = Q.T @ U
+    W_body = Q.T @ W
+    E_body = Q.T @ E @ Q
+
+    return U_body, W_body, E_body
+
+def omega_to_quat_dot(q, omega):
+    """Compute quaternion derivative dq/dt = 0.5 * Ω(ω) * q for [w,x,y,z]."""
+    wx, wy, wz = omega
+    Omega = np.array([
+        [0.0, -wx, -wy, -wz],
+        [wx,  0.0,  wz, -wy],
+        [wy, -wz,  0.0,  wx],
+        [wz,  wy, -wx,  0.0]
+    ])
+    return 0.5 * Omega @ q
