@@ -73,14 +73,7 @@ class FlowStokes(BaseSystem):
 
         r = np.sqrt(yg**2 + zg**2)  # radial coordinate of each point
 
-        # Find which points are within the mesh
-        r_local = np.interp(xg, x_surface, r_surface) 
-
-        # self.inside_mask = (
-        #     (xg >= x_surface.min()-0.02) &
-        #     (xg <= x_surface.max()+0.02) &
-        #     (r <= r_local+0.1)
-        # )
+        
 
         self.inside_mask = points_in_polygon(xg, r, x_surface, r_surface)
 
@@ -90,7 +83,7 @@ class FlowStokes(BaseSystem):
 
         U_field =U_field + U_boundary
 
-        U_field = U_field.reshape(Ng, 3) #- U_boundary 
+        U_field = U_field.reshape(Ng, 3)
         U_field[self.inside_mask,:] = 0
 
         return U_field
@@ -99,9 +92,13 @@ class FlowStokes(BaseSystem):
                           x                 :np.ndarray, 
                           y                 :np.ndarray, 
                           U_field           :np.ndarray,
+                          vmax             :float,
                           quiver_density    :int  = 18,
+                          view              :str  ='xy',
                           **kwargs):
         """
+
+        view: not correct yet
         **kwargs:
 
         quiver: bool = True
@@ -119,7 +116,7 @@ class FlowStokes(BaseSystem):
         Uy = U_field[:, 1].reshape(Ny, Nx)
         Uz = U_field[:, 2].reshape(Ny, Nx)
 
-        U_magnitude = np.sqrt(Ux**2 + Uy**2 + Uz**2)
+        
 
         inside_mask_2D = self.inside_mask.reshape(Ny, Nx)
 
@@ -131,15 +128,30 @@ class FlowStokes(BaseSystem):
         Uy_masked[inside_mask_2D] = np.nan
         Uz_masked[inside_mask_2D] = np.nan
 
-        Ux_quiver = Ux_masked[::quiver_density, ::quiver_density]
-        Uy_quiver = Uy_masked[::quiver_density, ::quiver_density]
+        if view=='xy':  
+            U_magnitude = np.sqrt(Ux**2 + Uy**2 +Uz**2)
+            Ux_quiver = Ux_masked[::quiver_density, ::quiver_density]
+            Uy_quiver = Uy_masked[::quiver_density, ::quiver_density]
+
+        elif view =="xz":
+            U_magnitude = np.sqrt(Ux**2 + Uz**2 )
+            Ux_quiver = Ux_masked[::quiver_density, ::quiver_density]
+            Uy_quiver = Uz_masked[::quiver_density, ::quiver_density]
+        elif view=="yz":
+            U_magnitude = np.sqrt(0*Uy**2 + Uz**2 )
+            Ux_quiver = Uy_masked[::quiver_density, ::quiver_density]
+            Uy_quiver = Uz_masked[::quiver_density, ::quiver_density]
+        else:
+            raise ValueError(f"{view} is not a valid view, did you mean 'xy', 'xz', or 'yz'?" )
+            
+
 
         x_quiver = x[::quiver_density]
         y_quiver = y[::quiver_density]
 
         from . import plotting 
 
-        return plotting.plot_vector_field(x,y,U_magnitude,x_quiver,y_quiver,Ux_quiver,Uy_quiver, self.mesh.isosurface,**kwargs)
+        return plotting.plot_vector_field(x,y,U_magnitude,x_quiver,y_quiver,Ux_quiver,Uy_quiver, self.mesh.isosurface,vmax,view,**kwargs)
 
 
 
