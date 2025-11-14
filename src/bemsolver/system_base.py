@@ -14,7 +14,7 @@ from .quadrature import triquad
 
 
 @dataclass
-class BaseSystem(ABC):
+class BaseSystem:
 
 
     mesh:Mesh
