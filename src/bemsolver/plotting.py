@@ -111,9 +111,9 @@ def plot_panels_stokes(panels, f):
     # Colorbar using the same normalization
     mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
     mappable.set_array(f)
-    plt.colorbar(mappable, ax=ax)
+    cbar = plt.colorbar(mappable, ax=ax)
 
-    return fig, ax
+    return fig, ax, cbar
     # plt.show()
 
 

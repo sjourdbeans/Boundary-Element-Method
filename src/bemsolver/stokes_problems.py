@@ -96,11 +96,13 @@ class ResistanceProblem(BaseSystem):
             psi=self.psi.reshape((self.mesh.elements,3))
             figs=[]
             axes=[]
+            cbars=[]
             for i in range(3):
-                fig,ax=plotting.plot_panels_stokes(self.mesh.panels,psi[:,i])
+                fig,ax,cbar=plotting.plot_panels_stokes(self.mesh.panels,psi[:,i])
                 figs.append(fig)
                 axes.append(ax)
-            return figs, axes 
+                cbars.append(cbar)
+            return figs, axes, cbars
         except:
             raise SyntaxError("System has not been solved yet! Run System.solve(RHS) before plotting.")
 
