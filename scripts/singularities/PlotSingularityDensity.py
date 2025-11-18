@@ -16,7 +16,7 @@ import os
 os.environ["PATH"] += ":/usr/bin"
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams["font.family"]= "DejaVu Sans"
-# mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
+mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
 
 mpl.rcParams["xtick.labelsize"]=13
 mpl.rcParams["ytick.labelsize"]=13
