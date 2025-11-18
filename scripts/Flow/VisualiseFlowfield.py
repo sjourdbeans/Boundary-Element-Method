@@ -89,7 +89,7 @@ vmax=1.2*np.max(np.linalg.norm(U_field, axis =1))
 fig = interaction.plot_vector_field(x, y, U_field, vmax= vmax, quiver_density=8)
 fig.set_size_inches(10,8)
 ax = fig.axes[0]
-ax.set_title(f"Flowfield with $\\mathbf{{u_{{\\infty}}}}= \\mathbf{{\\hat{{x}}}}$ $\\mu$s$^{{-1}}$", fontsize=20)
+ax.set_title(f"Flowfield with $\\mathbf{{u_{{\\infty}}}}= \\mathbf{{\\hat{{x}}}}$ $\\mu$m s$^{{-1}}$", fontsize=20)
 fig.savefig(f"{plot_path}/Flowfield_u_x={U[0]}.pdf")
 fig.savefig(f"{plot_image_path}/Flowfield_u_x={U[0]}.png",dpi=600)
 
