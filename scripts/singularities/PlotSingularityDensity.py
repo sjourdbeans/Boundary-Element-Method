@@ -33,6 +33,18 @@ plot_image_path = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-P
 
 #======================================================================
 
+
+def set_axes_equal(ax):
+
+        xs = np.array([ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()])
+        ranges = xs[:,1] - xs[:,0]
+        centers = np.mean(xs, axis=1)
+        radius = 0.5 * ranges.max()
+        ax.set_xlim3d(centers[0]-radius, centers[0]+radius)
+        ax.set_ylim3d(centers[1]-radius, centers[1]+radius)
+        ax.set_zlim3d(centers[2]-radius, centers[2]+radius)
+        ax.zaxis.set_rotate_label(False)
+
 # Background flow
 U = np.zeros(3)
 
@@ -75,7 +87,7 @@ for i, (fig, ax, cbar) in enumerate(zip(figs,axes, cbars)):
     ax.set_xlabel(r'$x$ [$\mu$m]',labelpad=15)
     ax.set_ylabel(r'$y$ [$\mu$m]',labelpad=15)
     ax.set_zlabel(r'$z$ [$\mu$m]',labelpad=15)
-    ax.zaxis.set_rotate_label(False) 
+         
 
     ax.tick_params(axis='both', pad=8)
     ax.tick_params(axis='z', pad=6)
@@ -83,6 +95,8 @@ for i, (fig, ax, cbar) in enumerate(zip(figs,axes, cbars)):
     cbar.set_label(r"Singularity Strength Coefficient", rotation=-90, labelpad=15)
 
     fig.subplots_adjust(left=0.0, right=0.95, top=0.95, bottom=0.0)
+
+    set_axes_equal(ax)
     fig.savefig(f"{plot_path}/Singularity_density_{component[i][1]}.pdf")
     fig.savefig(f"{plot_image_path}/Singularity_density_{component[i][1]}.png",dpi=600)
 
