@@ -9,14 +9,15 @@ from .mesh import Mesh
 from .stokes_problems import MobilityProblem, ResistanceProblem
 from .flowfield import FlowStokes
 from .SaveData import Solution
-
+from .flagella import SlenderBody
 
 __all__ = [
     "Mesh",
     "MobilityProblem",
     "ResistanceProblem",
     "FlowStokes",
-    "Solution"
+    "Solution",
+    "SlenderBody"
 ]
 
 __version__ = "0.1.0"
