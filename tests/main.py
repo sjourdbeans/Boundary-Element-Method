@@ -1,48 +1,64 @@
 from scipy.io import loadmat
-import warnings
-from dataclasses import dataclass, field
+import bemsolver as bem
 import numpy as np
-import bemsolver as BEM
-import os
+
+waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/lib02_1_90_2019-06-28_1640.mat")
+
+frame = 10
+
+
+cell = waveformfile["Cell"]
+thetar = cell["thetar"].item()[0][0]
+phi_body = cell["phi_body"].item()[0][0]
+
+
+xbase = 2.5 #- cell["dist_base"].item()[0][0]
+ybase = 0
+zbase = 0
 
 
 
+lf = waveformfile["lf0"][0,0]
+fps = waveformfile["fps"]
+dt = 1 /fps
 
-# warnings.simplefilter("once", category=UserWarning)
+velx_1 = waveformfile["velx0"][frame,0] * lf
+vely_1 = waveformfile["vely0"][frame,0] * lf
+velz_1 = np.zeros_like(vely_1) * lf
 
-# path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid-variation/spheroid_mesh_b=0.55.mat"
-# newpath="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/sphere_refinement/sphere_mesh_h=2.000000e-01.mat"
-# path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/sphere/sphere_mesh.mat"
-path="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/sphere_refinement/sphere_mesh_h=2.000000e-01.mat"
+velx_2 = waveformfile["velx0"][frame,1] * lf
+vely_2 = waveformfile["vely0"][frame,1] * lf
+velz_2 = np.zeros_like(vely_1) * lf
 
-#======================================================================
+base_position = np.array([xbase, ybase, zbase])
+curv_1 = waveformfile["kappasave"][frame,0,1:] 
+theta_0 = waveformfile["kappasave"][frame,0,0]
 
-# Background flow
-U = np.zeros(3)
-
-U[0] = 1
-U[1] = 0
-U[2] = 0
-
-# Background vorticity
-W = np.zeros(3)
-
-W[0] = 0
-W[1] = 0
-W[2] = 0
-
-    
-mesh=BEM.Mesh(path)
-
-sys=BEM.System(mesh)
-
-psi, force, torque = sys.solve(U,W)
+initial_angle_0 = np.pi - (thetar - phi_body) - theta_0
 
 
-sys.plot_singularity_density()
+tors_1 = np.zeros_like(curv_1)
+
+vel_1  = np.vstack((velx_1, vely_1, velz_1))
 
 
+# points =  np.arange(0, 30,1).reshape((10,3))
 
-# MATRIX, surface_matrix, torque_matrix=sys.construct_mobility_matrix()
-# print(force)
 
+flag = bem.SlenderBody(curv_1,tors_1,theta_0=initial_angle_0)
+K = flag.calc_mobility()
+
+print(K)
+
+# r, t = flag.r, flag.tangents
+
+# r= r[1:]
+# t=t[1:]
+
+# import matplotlib.pyplot as plt
+
+
+# plt.plot(r[:,0],r[:,1],'o-')
+# plt.quiver(r[:,0],r[:,1], t[:,0], t[:,1])
+# plt.show()
+# flag.calc_flagella_mobility()
