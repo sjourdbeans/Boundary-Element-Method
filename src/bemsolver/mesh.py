@@ -74,7 +74,7 @@ class Mesh:
         self.center = np.array([(np.max(self.centroids[:,0])+np.min(self.centroids[:,0]))/2,
                                 (np.max(self.centroids[:,1])+np.min(self.centroids[:,1]))/2,
                                 (np.max(self.centroids[:,2])+np.min(self.centroids[:,2]))/2])
-        self.centroids = self.centroids 
+        # self.centroids = self.centroids - self.center
         
         self.x_max=np.max(self.centroids[:,0])
         self.x_min=np.min(self.centroids[:,0])
