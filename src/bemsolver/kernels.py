@@ -230,6 +230,80 @@ def line_singularity_vectorized(collocations    :np.ndarray,
     return S_all, G_all
 
 
+
+
+
+def stokeslet(Xij, Yij, Zij):
+
+    N   = Xij.shape[0]
+
+    G   = np.zeros((3 * N, 3 * N))
+
+    Rij = np.sqrt(Xij**2 + Yij**2 + Zij**2 ) + 10**20 * np.eye(len(Xij))
+
+    Xij = Xij / Rij
+    Yij = Yij / Rij
+    Zij = Zij / Rij
+
+    # Select only the non-diagonal terms
+    Mask = np.ones_like(Rij) - np.eye(len(Rij))
+
+    # Make indices for allocation in steps of 3 (idx is for x, idx+1 is for y, and idx+2 is for z)
+    idx = np.arange(0, 3*N, 3)
+
+    # Kxx, Kxy, Kxz
+    G[np.ix_(idx, idx)]         = (1 + Xij**2) / Rij * Mask
+    G[np.ix_(idx, idx + 1)]     = (Xij * Yij)  / Rij * Mask
+    G[np.ix_(idx, idx + 2)]     = (Xij * Zij)  / Rij * Mask
+
+
+    # Kyx, Kyy, Kyz
+    G[np.ix_(idx + 1, idx)]     = G[np.ix_(idx, idx + 1)]
+    G[np.ix_(idx + 1, idx + 1)] = (1 + Yij**2) / Rij * Mask
+    G[np.ix_(idx + 1, idx + 2)] = (Yij * Zij)  / Rij * Mask
+
+    # Kzx, Kzy, Kzz
+    G[np.ix_(idx + 2, idx)]     = (Zij * Xij)  / Rij * Mask
+    G[np.ix_(idx + 2, idx + 1)] = (Zij * Yij)  / Rij * Mask
+    G[np.ix_(idx + 2, idx + 2)] = (1 + Zij**2) / Rij * Mask
+
+    return G
+
+def tangential(Lij, Sij, T):
+
+    N   = Lij.shape[0]
+
+    L   = np.zeros((3 * N, 3 * N))
+
+    t_x ,t_y, t_z = T
+
+    Mask = np.ones((N,N)) - np.eye(N)
+
+    # Add identity matrix to avoid division by zero (The diagonal terms are set to zero afterwards with Mask)
+    Sij = Sij + np.eye(len(Sij))
+
+    F = Lij / Sij  * Mask 
+
+    idx = np.arange(0, 3*N, 3)
+
+    L[np.ix_(idx), 0]     = np.sum((1 + t_x*t_y) * F, axis=1)
+    L[np.ix_(idx), 1]     = np.sum((    t_x*t_y) * F, axis=1)
+    L[np.ix_(idx), 2]     = np.sum((    t_x*t_z) * F, axis=1)
+
+    L[np.ix_(idx + 1), 0] = np.sum((    t_y*t_x) * F, axis=1)
+    L[np.ix_(idx + 1), 1] = np.sum((1 + t_y*t_y) * F, axis=1)
+    L[np.ix_(idx + 1), 2] = np.sum((    t_y*t_z) * F, axis=1)
+
+    L[np.ix_(idx + 2), 0] = np.sum((    t_z*t_x) * F, axis=1)
+    L[np.ix_(idx + 2), 1] = np.sum((1 + t_z*t_y) * F, axis=1)
+    L[np.ix_(idx + 2), 2] = np.sum((    t_z*t_z) * F, axis=1)
+
+    return L
+
+
+
+
+
 #============================ FROM HERE ONWARDS IS UNUSED CODE===========================
 
 @njit(fastmath=True)
