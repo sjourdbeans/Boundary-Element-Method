@@ -153,7 +153,7 @@ def fix_gmsh_normals(nodes, triangles, center=None):
 
     inward = dot_sign > 0
 
-    # 🔧 Corrected swap
+    # Corrected swap
     tmp = triangles[inward, 1].copy()
     triangles[inward, 1] = triangles[inward, 2]
     triangles[inward, 2] = tmp
