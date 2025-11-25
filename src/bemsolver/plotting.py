@@ -75,7 +75,7 @@ def plot_mesh(
     ax.set_zlabel('z')
     if plot_normals:
         plt.legend(frameon=False)
-    plt.show()
+    return fig,ax
 
 def plot_panels_stokes(panels, f):
     """

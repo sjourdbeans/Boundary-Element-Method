@@ -15,13 +15,13 @@ mpl.rcParams['ytick.minor.visible'] = True
 import os
 os.environ["PATH"] += ":/usr/bin"
 mpl.rcParams['text.usetex'] = True
-mpl.rcParams["font.family"]= "DejaVu Sans"
+mpl.rcParams["font.family"]= "Palatino"
 mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
 
 mpl.rcParams["xtick.labelsize"]=13
 mpl.rcParams["ytick.labelsize"]=13
-mpl.rcParams["axes.labelsize"]=15
-mpl.rcParams["axes.titlesize"]=15
+mpl.rcParams["axes.labelsize"]=20
+mpl.rcParams["axes.titlesize"]=25
 mpl.rcParams["legend.fontsize"]=13
 
 
@@ -82,11 +82,11 @@ for i, (fig, ax, cbar) in enumerate(zip(figs,axes, cbars)):
 
     
     fig.set_size_inches(10,7)
-    ax.set_title(component[i]+r" Component of the Singularity Density $\psi$",fontsize=20, pad = 0)
+    ax.set_title(component[i]+r" Component of the Singularity Density $\psi$", pad = 0)
     ax.view_init(elev=20, azim=30)
     ax.set_xlabel(r'$x$ [$\mu$m]',labelpad=15)
     ax.set_ylabel(r'$y$ [$\mu$m]',labelpad=15)
-    ax.set_zlabel(r'$z$ [$\mu$m]',labelpad=15)
+    ax.set_zlabel(r'$z$ [$\mu$m]',labelpad=20)
          
 
     ax.tick_params(axis='both', pad=8)
