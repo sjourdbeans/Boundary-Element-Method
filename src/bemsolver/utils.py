@@ -88,6 +88,8 @@ def U_colloc(U          :np.ndarray,
         Translational velocity vector [micron/s].
     U_r : np.ndarray, shape (3*r,)
         Rotational velocity vector [micron/s].
+    U_e : np.ndarray, shape (3*r,)
+        Strain rate velocity vector [micron/s].
     """
      # Translational velocity: just repeat U for each collocation point
     U_t = np.tile(U, r)
