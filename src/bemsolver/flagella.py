@@ -225,8 +225,8 @@ class SlenderBody:
         Yij = Yij / Rij
         Zij = Zij / Rij       
 
-        idx_p = np.arange(0, N_p, 3)
-        idx_f = np.arange(0, self.Nf, 3)
+        idx_p = np.arange(0, 3*N_p, 3)
+        idx_f = np.arange(0, 3*self.Nf, 3)
 
 
         M[np.ix_(idx_p, idx_f)]         =  (1 + Xij * Xij) / Rij + (self.flagellum_radius**2/2) * (1 - 3 * Xij * Xij) / Rij**3
