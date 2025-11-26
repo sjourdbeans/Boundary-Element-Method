@@ -127,7 +127,6 @@ class SlenderBody:
         K = np.zeros((3*self.Nf, 3*self.Nf))
         H            = np.zeros((3 * self.Nf, 3))
         ones_array   = np.ones((1, self.Nf))
-        identity     = np.eye(self.Nf)
         
         x, y, z = self.r.T
         
@@ -197,9 +196,52 @@ class SlenderBody:
     def calc_interaction(self,
                          evaluation_points:np.ndarray):
         N_p = np.shape(evaluation_points)[0]
-        
-        
 
+        xf, yf, zf = self.r.T
+        xp, yp, zp =evaluation_points.T
+
+        M = np.zeros((3*N_p, 3*self.Nf))
+
+        ones_eval   = np.ones((N_p,1))
+        ones_array  = np.ones((1, self.Nf))
+
+
+        Xi = np.outer(xp, ones_array)
+        Yi = np.outer(yp, ones_array)
+        Zi = np.outer(zp, ones_array)
+        
+        Xj = np.outer(ones_eval, xf)
+        Yj = np.outer(ones_eval, yf)
+        Zj = np.outer(ones_eval, zf)
+
+        Xij = Xi - Xj
+        Yij = Yi - Yj
+        Zij = Zi - Zj
+
+        Rij = np.sqrt(Xij**2 + Yij**2 + Zij**2 ) + 0.5 * self.flagellum_radius
+
+        
+        Xij = Xij / Rij
+        Yij = Yij / Rij
+        Zij = Zij / Rij       
+
+        idx_p = np.arange(0, N_p, 3)
+        idx_f = np.arange(0, self.Nf, 3)
+
+
+        M[np.ix_(idx_p, idx_f)]         =  (1 + Xij * Xij) / Rij + (self.flagellum_radius**2/2) * (1 - 3 * Xij * Xij) / Rij**3
+        M[np.ix_(idx_p, idx_f + 1)]     =  (    Xij * Yij) / Rij + (self.flagellum_radius**2/2) * (  - 3 * Xij * Yij) / Rij**3
+        M[np.ix_(idx_p, idx_f + 2)]     =  (    Xij * Zij) / Rij + (self.flagellum_radius**2/2) * (  - 3 * Xij * Zij) / Rij**3
+
+        M[np.ix_(idx_p + 1, idx_f)]     =   M[np.ix_(idx_p, idx_f+1)]
+        M[np.ix_(idx_p + 1, idx_f + 1)] =  (1 + Yij * Yij) / Rij + (self.flagellum_radius**2/2) * (1 - 3 * Yij * Yij) / Rij**3
+        M[np.ix_(idx_p + 1, idx_f + 2)] =  (    Yij * Zij) / Rij + (self.flagellum_radius**2/2) * (  - 3 * Yij * Zij) / Rij**3
+
+        M[np.ix_(idx_p + 2, idx_f)]     =   M[np.ix_(idx_p, idx_f + 2)]
+        M[np.ix_(idx_p + 2, idx_f + 1)] =   M[np.ix_(idx_p + 1, idx_f + 2)]
+        M[np.ix_(idx_p + 2, idx_f + 2)] =  (1 + Zij * Zij) / Rij + (self.flagellum_radius**2/2) * (1 - 3 * Zij * Zij) / Rij**3
+
+        return 1/(8*np.pi) * M
 
 
 def _rk4_step(f, y, s, ds):
