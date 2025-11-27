@@ -34,8 +34,8 @@ class BaseSystem:
         Construct the mobility matrix of the geometry in the mesh interacting with itself 
         """
         M = self.evaluation_points.shape[0]        # number of collocation points
+        
         N = self.mesh.elements
-
 
         # keep in mind that the amount of rows depend on collocation points
         # which in this case is the same as the elements but that is not always the case
@@ -59,8 +59,10 @@ class BaseSystem:
             surface_matrix[:,3*i:3*i+3]  = area * np.eye(3)
 
             torque_matrix[:,3*i:3*i+3]   = torque_tensor
+            
+            # r_cross_matrix[3*i:3*i+3,:]  = r_cross
+        
 
-            r_cross_matrix[3*i:3*i+3,:]  = r_cross
 
         if self.UseSecondKindIntEquation:
             MATRIX= 0.5*np.eye(3*N) + MATRIX
@@ -70,7 +72,7 @@ class BaseSystem:
         self.MATRIX          = MATRIX
         self.surface_matrix  = surface_matrix
         self.torque_matrix   = torque_matrix
-        self.r_cross         = r_cross_matrix
+        self.r_cross_matrix  = -_skew_stack(self.evaluation_points)    # Add the minus since we want cross r (see bottom)
 
         return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
     
@@ -221,9 +223,28 @@ class BaseSystem:
 
 
 
-        
 
+def _skew_stack(r):
+    """
+    r: (M,3) input coordinates
+    returns: (3M,3) stacked skew-symmetric matrices
+    """
+    x = r[:, 0]
+    y = r[:, 1]
+    z = r[:, 2]
 
+    # Build all skew matrices in a (M,3,3) array
+    A = np.zeros((len(r), 3, 3))
+
+    A[:, 0, 1] = -z
+    A[:, 0, 2] =  y
+    A[:, 1, 0] =  z
+    A[:, 1, 2] = -x
+    A[:, 2, 0] = -y
+    A[:, 2, 1] =  x
+
+    # Stack them vertically  (3M, 3)
+    return A.reshape(-1, 3)
 
 
 

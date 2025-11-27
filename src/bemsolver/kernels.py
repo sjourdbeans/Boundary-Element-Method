@@ -280,7 +280,7 @@ def tangential(Lij, Sij, T):
     Mask = np.ones((N,N)) - np.eye(N)
 
     # Add identity matrix to avoid division by zero (The diagonal terms are set to zero afterwards with Mask)
-    Sij = Sij + np.eye(len(Sij))
+    Sij = Sij + 10**20*np.eye(len(Sij))
 
     F = Lij / Sij  * Mask 
 
