@@ -286,7 +286,7 @@ def tangential(Lij, Sij, T):
 
     idx = np.arange(0, 3*N, 3)
 
-    L[np.ix_(idx), 0]     = np.sum((1 + t_x*t_y) * F, axis=1)
+    L[np.ix_(idx), 0]     = np.sum((1 + t_x*t_x) * F, axis=1)
     L[np.ix_(idx), 1]     = np.sum((    t_x*t_y) * F, axis=1)
     L[np.ix_(idx), 2]     = np.sum((    t_x*t_z) * F, axis=1)
 
@@ -295,8 +295,8 @@ def tangential(Lij, Sij, T):
     L[np.ix_(idx + 1), 2] = np.sum((    t_y*t_z) * F, axis=1)
 
     L[np.ix_(idx + 2), 0] = np.sum((    t_z*t_x) * F, axis=1)
-    L[np.ix_(idx + 2), 1] = np.sum((1 + t_z*t_y) * F, axis=1)
-    L[np.ix_(idx + 2), 2] = np.sum((    t_z*t_z) * F, axis=1)
+    L[np.ix_(idx + 2), 1] = np.sum((    t_z*t_y) * F, axis=1)
+    L[np.ix_(idx + 2), 2] = np.sum((1 + t_z*t_z) * F, axis=1)
 
     return L
 
