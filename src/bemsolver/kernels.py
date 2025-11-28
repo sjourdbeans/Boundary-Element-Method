@@ -277,6 +277,8 @@ def tangential(Lij, Sij, T):
 
     t_x ,t_y, t_z = T
 
+    t = np.column_stack((t_x, t_y, t_z))
+
     Mask = np.ones((N,N)) - np.eye(N)
 
     # Add identity matrix to avoid division by zero (The diagonal terms are set to zero afterwards with Mask)
@@ -284,19 +286,13 @@ def tangential(Lij, Sij, T):
 
     F = Lij / Sij  * Mask 
 
-    idx = np.arange(0, 3*N, 3)
+    # Assemble diagonal block matrix
+    for i in range(N):
+        ti = t[i]                 # shape (3,)
+        tkF = t.T @ F[i]          # shape (3,), equals sum over k
+        Li = np.outer(ti, tkF)    # shape (3,3)
 
-    L[np.ix_(idx), 0]     = np.sum((1 + t_x*t_x) * F, axis=1)
-    L[np.ix_(idx), 1]     = np.sum((    t_x*t_y) * F, axis=1)
-    L[np.ix_(idx), 2]     = np.sum((    t_x*t_z) * F, axis=1)
-
-    L[np.ix_(idx + 1), 0] = np.sum((    t_y*t_x) * F, axis=1)
-    L[np.ix_(idx + 1), 1] = np.sum((1 + t_y*t_y) * F, axis=1)
-    L[np.ix_(idx + 1), 2] = np.sum((    t_y*t_z) * F, axis=1)
-
-    L[np.ix_(idx + 2), 0] = np.sum((    t_z*t_x) * F, axis=1)
-    L[np.ix_(idx + 2), 1] = np.sum((    t_z*t_y) * F, axis=1)
-    L[np.ix_(idx + 2), 2] = np.sum((1 + t_z*t_z) * F, axis=1)
+        L[3*i:3*i+3, 3*i:3*i+3] = Li
 
     return L
 

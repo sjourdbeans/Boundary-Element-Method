@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from scipy.linalg import lu_factor, lu_solve
 
 # from .mesh import Mesh
-# from .utils import find_panel_data, U_colloc
+from .utils import U_colloc
 from .kernels import stokeslet, tangential
 # from .quadrature import triquad
 
@@ -30,11 +30,11 @@ class SlenderBody:
 
         Nf                   = len(self.curvature) - 1
         self.ssold           = np.linspace(0,self.flagellum_length, Nf+1)
-        indstart             = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
+        self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
 
         self.ds              = self.ssold[1]-self.ssold[0]
 
-        self.ss              = self.ssold[indstart:]
+        self.ss              = self.ssold[self.indstart:]
         self.Nf              = len(self.ss) -1
 
         self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
@@ -68,12 +68,9 @@ class SlenderBody:
 
         self.calc_curve()
         
-        self.r        = self.r[indstart+1:]
-        self.tangents = self.tangents[indstart+1:]
+        self.r        = self.r[self.indstart+1:]
+        self.tangents = self.tangents[self.indstart+1:]
 
-
-        
-        # Calculate cen
 
 
     
@@ -118,14 +115,35 @@ class SlenderBody:
             Y[9:12] = B_next
 
             self.r[i]        = Y[:3]
-            self.tangents[i] = T_next       
+            self.tangents[i] = T_next   
+
+
+    def construct_mobility_matrix(self):
+
+        self.MATRIX = self.calc_mobility()   
+
+        return self.MATRIX
+
+
+    def set_boundary_condition(self,
+                               U        :np.ndarray,
+                               W        :np.ndarray,
+                               E        :np.ndarray=np.zeros((3,3)))->np.ndarray:
+        
+        
+        rows, columns = np.shape(self.MATRIX)
+        U_t, U_r, U_e =U_colloc(U,W, self.r,int(rows/3), E)
+
+        return U_t+U_r+U_e 
             
             
 
 
     def calc_mobility(self):
         K = np.zeros((3*self.Nf, 3*self.Nf))
-        H            = np.zeros((3 * self.Nf, 3))
+
+        H = np.zeros((3*self.Nf, 3*self.Nf))
+
         ones_array   = np.ones((1, self.Nf))
         
         x, y, z = self.r.T
@@ -136,9 +154,10 @@ class SlenderBody:
 
         Li = np.outer(self.element_lengths, ones_array)
 
-        t_x = np.outer(self.tangents[:,0], ones_array)
-        t_y = np.outer(self.tangents[:,1], ones_array)
-        t_z = np.outer(self.tangents[:,2], ones_array)
+    
+        t_x = self.tangents[:,0]
+        t_y = self.tangents[:,1]
+        t_z = self.tangents[:,2]
         T= (t_x, t_y, t_z)
 
         Si = np.outer(self.flag_centroids, ones_array)
@@ -155,46 +174,26 @@ class SlenderBody:
 
         L = tangential(Lij, Sij, T)
 
-         
-
-        idx = np.arange(0, 3*self.Nf, 3)
 
         constant = np.log(self.slend_2)  
 
-
-        H[np.ix_(idx), 0]       =   (constant-1 + (constant + 3) * t_x[:,0] * t_x[:,0]) / self.element_lengths
-        H[np.ix_(idx), 1]       =   (             (constant + 3) * t_x[:,0] * t_y[:,0]) / self.element_lengths
-        H[np.ix_(idx), 2]       =   (             (constant + 3) * t_x[:,0] * t_z[:,0]) / self.element_lengths
-
-        H[np.ix_(idx + 1), 0]   =   (             (constant + 3) * t_y[:,0] * t_x[:,0]) / self.element_lengths
-        H[np.ix_(idx + 1), 1]   =   (constant-1 + (constant + 3) * t_y[:,0] * t_y[:,0]) / self.element_lengths
-        H[np.ix_(idx + 1), 2]   =   (             (constant + 3) * t_y[:,0] * t_z[:,0]) / self.element_lengths
-
-        H[np.ix_(idx + 2), 0]   =   (             (constant + 3) * t_z[:,0] * t_x[:,0]) / self.element_lengths
-        H[np.ix_(idx + 2), 1]   =   (             (constant + 3) * t_z[:,0] * t_y[:,0]) / self.element_lengths
-        H[np.ix_(idx + 2), 2]   =   (constant-1 + (constant + 3) * t_z[:,0] * t_z[:,0]) / self.element_lengths
-
-        # Assemble mobility matrix
-
-        K[np.ix_(idx, idx)]             = -G[np.ix_(idx,idx)]       + np.diag(H[np.ix_(idx), 0]     + L[np.ix_(idx), 0])
-        K[np.ix_(idx, idx + 1)]         = -G[np.ix_(idx,idx+1)]     + np.diag(H[np.ix_(idx), 1]     + L[np.ix_(idx), 1])
-        K[np.ix_(idx, idx + 2)]         = -G[np.ix_(idx,idx+2)]     + np.diag(H[np.ix_(idx), 2]     + L[np.ix_(idx), 2])
+        for i in range(self.Nf):
+            ti = self.tangents[i]
+            tt = np.outer(ti, ti)
+            Hi = (constant[i] - 1)*np.eye(3) + (constant[i] + 3)*tt
+            Hi /= self.element_lengths[i]
+            H[3*i:3*i+3, 3*i:3*i+3] = Hi
 
 
-        K[np.ix_(idx + 1, idx)]         = -G[np.ix_(idx + 1,idx)]   + np.diag(H[np.ix_(idx + 1), 0] + L[np.ix_(idx + 1), 0])
-        K[np.ix_(idx + 1, idx + 1)]     = -G[np.ix_(idx + 1,idx+1)] + np.diag(H[np.ix_(idx + 1), 1] + L[np.ix_(idx + 1), 1])
-        K[np.ix_(idx + 1, idx + 2)]     = -G[np.ix_(idx + 1,idx+2)] + np.diag(H[np.ix_(idx + 1), 2] + L[np.ix_(idx + 1), 2])
+        K = -1/(8*np.pi)*(G - H - L)
 
-
-        K[np.ix_(idx + 2, idx)]         = -G[np.ix_(idx + 2,idx)]   + np.diag(H[np.ix_(idx + 2), 0] + L[np.ix_(idx + 2), 0])
-        K[np.ix_(idx + 2, idx + 1)]     = -G[np.ix_(idx + 2,idx+1)] + np.diag(H[np.ix_(idx + 2), 1] + L[np.ix_(idx + 2), 1])
-        K[np.ix_(idx + 2, idx + 2)]     = -G[np.ix_(idx + 2,idx+2)] + np.diag(H[np.ix_(idx + 2), 2] + L[np.ix_(idx + 2), 2])
-
-        return 1/(8*np.pi)* K
+        return  K
     
 
     def calc_interaction(self,
                          evaluation_points:np.ndarray):
+        
+
         N_p = np.shape(evaluation_points)[0]
 
         xf, yf, zf = self.r.T
@@ -242,6 +241,9 @@ class SlenderBody:
         M[np.ix_(idx_p + 2, idx_f + 2)] =  (1 + Zij * Zij) / Rij + (self.flagellum_radius**2/2) * (1 - 3 * Zij * Zij) / Rij**3
 
         return 1/(8*np.pi) * M
+    
+
+    
 
 
 def _rk4_step(f, y, s, ds):
