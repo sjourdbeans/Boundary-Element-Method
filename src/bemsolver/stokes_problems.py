@@ -36,6 +36,7 @@ class ResistanceProblem(BaseSystem):
     Solve the resistance problem for a given mesh for a flow in the x-direction.
 
     >>> import bemsolver as bem
+    >>> import numpy as np
 
     >>> mesh = bem.Mesh("/path_to_mesh/file.mat")
     >>> sys  = bem.ResistanceProblem(mesh) 
@@ -394,9 +395,10 @@ class MobilityProblem(BaseSystem):
         Function that returns the RHS of the ODE to be integrated over time
 
         Parameters
-        ----------
+        ----------        
         Y       : numpy array (1,7)
-                : Array which contains the initial position and quaternion vector (orientation).
+                  Array which contains the initial position and quaternion vector (orientation).
+
         Returns
         -------
         Y_dot   : numpy array (1,7)
