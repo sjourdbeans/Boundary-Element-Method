@@ -37,6 +37,8 @@ class SlenderBody:
     smin            : float (optional) automatically set to 0.15
                       Starting arclength of the curve in terms of its length. Autmatically set to start 
                       at 0.15L to avoid being to close to the cell body.
+    velocity        : numpy array (optional) (N, 3) automatically set to zeros(N,3)
+                      The velocity of the body at each element (Flagellum velocity).
 
     Example
     -------
@@ -75,18 +77,23 @@ class SlenderBody:
     flagellum_length    : int|float             = field(default_factory=lambda: 10)
     flagellum_radius    : int|float             = field(default_factory=lambda: 0.2) 
     smin                : int|float             = field(default_factory=lambda: 0.15)
+    velocity            : np.ndarray            = field(default_factory=lambda: None)
 
 
     def __post_init__(self):
         if len(self.curvature)!= len(self.torsion):
             raise IndexError(f"Curvatures and torsion must have the same length ({len(self.curvature)} != {len(self.torsion)})")
 
+        if self.velocity is None:
+            self.velocity = np.zeros((len(self.curvature),3))
 
         self.curvature      /= self.flagellum_length
 
         Nf                   = len(self.curvature) - 1
         self.ssold           = np.linspace(0,self.flagellum_length, Nf+1)
         self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
+
+        self.velocity        = self.velocity[self.indstart + 1 :]
 
         self.ds              = self.ssold[1]-self.ssold[0]
 
@@ -247,15 +254,15 @@ class SlenderBody:
         
         Returns
         -------
-        U_t+U_r+U_e : numpy array (3N,)
-                      The total background flow on each element centroid
+        U_t+U_r+U_e+U_f : numpy array (3N,)
+                          The total background flow on each element centroid
         """
         
         rows, columns = np.shape(self.MATRIX)
 
-        U_t, U_r, U_e =U_colloc(U,W, self.r,int(rows/3), E)
+        U_t, U_r, U_e =U_colloc(U,W, self.r,int(rows/3), E) 
 
-        return U_t+U_r+U_e 
+        return U_t+U_r+U_e + self.velocity.flatten()
             
             
 

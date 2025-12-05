@@ -94,7 +94,7 @@ Ng = np.shape(xg)[0]
 
 points = np.vstack((xg, yg, zg)).T
 
-savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Flagella/flagellum.mp4"
+savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Flagella/flagellum_test.mp4"
 tmp_dir = "frames"
 
 os.makedirs(tmp_dir, exist_ok=True)
@@ -119,14 +119,15 @@ for frame in range(len(waveformfile["kappasave"])):
     curv_test = 2*np.ones(30)
     tors_test = np.zeros_like(curv_test)
 
-    flag2 = bem.SlenderBody(curv_2,tors_2,theta_0=initial_angle_2,flagellum_length=lf,base_position=base_position_2, smin=0,rho_0=0)
+    flag2 = bem.SlenderBody(curv_2,tors_2,theta_0=initial_angle_2,flagellum_length=lf,base_position=base_position_2, smin=0,
+                            velocity=vel_2)
     
 
     M = flag2.construct_mobility_matrix()
 
-    vel_2_flat = vel_2[flag2.indstart+1:].flatten()
+    # vel_2_flat = vel_2[flag2.indstart+1:].flatten()
 
-    RHS  = flag2.set_boundary_condition(U,W,E) + vel_2_flat
+    RHS  = flag2.set_boundary_condition(U,W,E)# + vel_2_flat
 
     f = np.linalg.solve(M, -RHS)
 
