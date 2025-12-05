@@ -286,15 +286,66 @@ def tangential(Lij, Sij, T):
 
     F = Lij / Sij  * Mask 
 
-    # Assemble diagonal block matrix
-    for i in range(N):
-        ti = t[i]                 # shape (3,)
-        tkF = t.T @ F[i]          # shape (3,), equals sum over k
-        Li = np.outer(ti, tkF)    # shape (3,3)
+    idx1 = np.arange(0, 3*N, 3)
+    idx2 = np.arange(1, 3*N, 3)
+    idx3 = np.arange(2, 3*N, 3)
 
-        L[3*i:3*i+3, 3*i:3*i+3] = Li
+    factor = (Lij / Sij) * Mask   # shape (N, M)
+
+    # dyadic components t_i * t_j
+    t_xx = t_x * t_x
+    t_xy = t_x * t_y
+    t_xz = t_x * t_z
+    t_yy = t_y * t_y
+    t_yz = t_y * t_z
+    t_zz = t_z * t_z
+
+    # === Fill the 3×3 block for each segment ===
+
+    # row 1
+    L[idx1, idx1] = np.sum((1 + t_xx) * factor, axis=1)
+    L[idx1, idx2] = np.sum((    t_xy) * factor, axis=1)
+    L[idx1, idx3] = np.sum((    t_xz) * factor, axis=1)
+
+    # row 2
+    L[idx2, idx1] = np.sum((    t_xy) * factor, axis=1)
+    L[idx2, idx2] = np.sum((1 + t_yy) * factor, axis=1)
+    L[idx2, idx3] = np.sum((    t_yz) * factor, axis=1)
+
+    # row 3
+    L[idx3, idx1] = np.sum((    t_xz) * factor, axis=1)
+    L[idx3, idx2] = np.sum((    t_yz) * factor, axis=1)
+    L[idx3, idx3] = np.sum((1 + t_zz) * factor, axis=1)
 
     return L
+
+# def tangential(Lij, Sij, T):
+#     N = Lij.shape[0]
+#     L = np.zeros((3*N, 3*N))
+
+#     t = np.column_stack(T)
+#     Mask = np.ones((N, N)) - np.eye(N)
+
+#     # avoid division by zero
+#     Sij = Sij + 1e20*np.eye(N)
+
+#     F = (Lij / Sij) * Mask  # (N,N)
+
+#     for i in range(N):
+#         block=np.zeros((3,3))
+#         for j in range(N):
+#             if i == j:
+#                 continue
+
+#             ti = t[i]       # (3,)
+#             tj = t[j]       # (3,)
+            
+#             # 3×3 block: I + t_i t_j^T
+#             block += F[i,j] * (np.eye(3) + np.outer(ti, ti))
+
+#         L[3*i:3*i+3, 3*i:3*i+3] = block
+
+#     return L
 
 
 
