@@ -69,10 +69,7 @@ class FlowStokes(BaseSystem):
 
 
     def calc_vector_field(self, 
-                          psi        : np.ndarray,
-                          U          : np.ndarray,
-                          W          : np.ndarray,
-                          E          : np.ndarray):
+                          psi        : np.ndarray):
         
         xg, yg, zg = self.evaluation_points.T
         Ng = np.shape(xg)[0]

@@ -248,7 +248,7 @@ for frame in range(len(waveformfile["kappasave"])):
     u_field  = K @ f1 + K2 @ f2 + flow_head.MATRIX  @ psi
 
     # use for mask 
-    flow_head.calc_vector_field(psi,U, W, E)
+    flow_head.calc_vector_field(psi)
     #===========
     
     u_boundary = flow_head.set_background_flow(U, W, E)
