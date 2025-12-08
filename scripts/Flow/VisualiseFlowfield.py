@@ -81,7 +81,7 @@ sys = bem.ResistanceProblem(mesh)
 psi, force, torque = sys.solve(U,W,E)
 
 
-U_field =interaction.calc_vector_field(psi) + interaction.set_background_flow(U, W, E)
+U_field =interaction.calc_vector_field(psi, U, W, E) 
 
 vmax=1#*np.max(np.linalg.norm(U_field, axis =1))
 # vmax=4

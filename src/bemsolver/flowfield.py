@@ -69,7 +69,10 @@ class FlowStokes(BaseSystem):
 
 
     def calc_vector_field(self, 
-                          psi        : np.ndarray):
+                          psi        : np.ndarray,
+                          U          : np.ndarray,
+                          W          : np.ndarray,
+                          E          : np.ndarray)-> np.ndarray:
         
         xg, yg, zg = self.evaluation_points.T
         Ng = np.shape(xg)[0]
@@ -86,9 +89,9 @@ class FlowStokes(BaseSystem):
 
         self.inside_mask = points_in_polygon(xg, r, x_surface, r_surface)
 
-        # U_boundary = self.set_background_flow(U, W, E)
+        U_boundary = self.set_background_flow(U, W, E)
 
-        U_field =U_field #+ U_boundary
+        U_field =U_field + U_boundary
 
         U_field = U_field.reshape(Ng, 3)
         U_field[self.inside_mask,:] = 0

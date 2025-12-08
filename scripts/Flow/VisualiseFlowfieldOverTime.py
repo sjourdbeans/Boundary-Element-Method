@@ -106,7 +106,7 @@ for i, iter in enumerate(time_indices):
     U_body, W_body, E_body = rotate_BCs(Q, U, W, E)
     psi, u, omega = solution.psi[iter], solution.u[iter], solution.omega[iter]
 
-    U_field = interaction.calc_vector_field(psi) + interaction.set_background_flow(U_body, W_body, E_body)
+    U_field = interaction.calc_vector_field(psi, U_body, W_body, E_body)
 
     fig = interaction.plot_vector_field(
         x, y, U_field, max_mag,
