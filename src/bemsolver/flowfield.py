@@ -165,11 +165,6 @@ class FlowStokes(BaseSystem):
 
 
 
-        
-
-        
-
-
 
 
 
