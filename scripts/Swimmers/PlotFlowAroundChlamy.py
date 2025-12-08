@@ -150,7 +150,7 @@ Ng = np.shape(xg)[0]
 
 points = np.vstack((xg, yg, zg)).T
 
-savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Chlamy/Chlamy.mp4"
+savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Chlamy/Chlamy_test.mp4"
 tmp_dir = "frames"
 
 os.makedirs(tmp_dir, exist_ok=True)
@@ -163,7 +163,6 @@ sys = bem.ResistanceProblem(mesh)
 sys.construct_mobility_matrix()
 
 # U_field =flow_head.calc_vector_field(psi,U, W, E)
-
 
 for frame in range(len(waveformfile["kappasave"])):
 
@@ -251,10 +250,8 @@ for frame in range(len(waveformfile["kappasave"])):
     # use for mask 
     flow_head.calc_vector_field(psi,U, W, E)
     #===========
-    rows, columns = np.shape(flow_head.MATRIX)
     
-    ut, ur, ue = U_colloc(U,W, points,int(rows/3), E)
-    u_boundary = ut+ur+ue
+    u_boundary = flow_head.set_background_flow(U, W, E)
 
     u_field = u_field + u_boundary
 

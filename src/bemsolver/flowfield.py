@@ -89,9 +89,9 @@ class FlowStokes(BaseSystem):
 
         self.inside_mask = points_in_polygon(xg, r, x_surface, r_surface)
 
-        U_boundary = self.set_background_flow(U, W, E)
+        # U_boundary = self.set_background_flow(U, W, E)
 
-        U_field =U_field + U_boundary
+        U_field =U_field #+ U_boundary
 
         U_field = U_field.reshape(Ng, 3)
         U_field[self.inside_mask,:] = 0
@@ -177,6 +177,6 @@ class FlowStokes(BaseSystem):
         """
         This method is only available where the boundary condition needs to be set on the surface of the mesh.
         """
-        raise NotImplementedError("FlowStokes does not set boundary conditions!")
+        raise NotImplementedError("FlowStokes does not set boundary conditions! Did you mean FlowStokes.set_background_flow()?")
 
     
