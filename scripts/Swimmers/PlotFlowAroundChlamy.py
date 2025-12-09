@@ -205,7 +205,19 @@ tmp_dir = "frames"
 os.makedirs(tmp_dir, exist_ok=True)
 frame_files = []
 
+#=====open pre-saved flowstokes object=======
+# with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/flowstokes_object.pkl", 'rb') as file:
+#     flow_head = pickle.load(file)
+#     file.close()
+#============================================
+
+
 flow_head = bem.FlowStokes(mesh, points)
+
+#======save flowstokes object=========
+# with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/flowstokes_object.pkl", "wb") as f:
+#     pickle.dump(flow_head, f)
+#=====================================
 
 for frame in range(N_frames):
 
