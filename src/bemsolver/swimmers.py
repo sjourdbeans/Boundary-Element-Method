@@ -39,7 +39,11 @@ class Swimmer(BaseSystem):
         self.solution.time = np.zeros(N_frames)
         self.solution.psi  = np.zeros((N_frames, 3*self.mesh.elements))
         self.solution.f1   = np.zeros((N_frames, 3*len(self.flagellum_1[0].r)))
+
+        if self.flagellum_2 is not None:
+            self.solution.f2   = np.zeros((N_frames, 3*len(self.flagellum_2[0].r)))
         
+        # Run the __post_init__ of BaseSystem 
         super().__post_init__()
         
 
@@ -98,7 +102,9 @@ class Swimmer(BaseSystem):
     
     
 
-    def solve(self,find_flow:Callable, dt:float) -> Iterable[np.ndarray]:
+    def solve(self,
+              find_flow:Callable[[float, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]], 
+              dt:float) -> Iterable[np.ndarray]:
         """
         Solve the mobility problem for all frames given a function that provides the boundary conditions.
 
@@ -118,10 +124,6 @@ class Swimmer(BaseSystem):
         self.dt = dt
 
         N_frames = len(self.flagellum_1)
-
-
-        if self.flagellum_2 is not None:
-            self.solution.f2   = np.zeros((N_frames, 3*len(self.flagellum_2[0].r)))
         
 
         for frame_index in range(N_frames):
@@ -245,27 +247,139 @@ class Swimmer(BaseSystem):
 
 
 
-        
-
-            
-
-
-            
-        
-
-        
-
-
 @dataclass
 class FreeSwimmer(BaseSystem):
 
+    # function to find the flow field at a point x
+    flow_function   : Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]
+    
     flagellum_1     : Iterable[SlenderBody]
 
     flagellum_2     : Iterable[SlenderBody]     = field(default_factory=lambda: None)
 
 
+    initial_position    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))  
+    initial_orientation :np.ndarray = field(default_factory=lambda: np.array([1,0,0]))
+
+
+
     def __post_init__(self):
-        return super().__post_init__()
+        N_frames = len(self.flagellum_1)
+        N_h      = len(self.mesh.centroids)
+        N_f1     = len(self.flagellum_1[0].r)
+        N_f2     = len(self.flagellum_2[0].r) if self.flagellum_2 is not None else 0
+
+        # incl_f2  = int(bool(N_f2))
+        dimension = 3*N_h + 3*N_f1 + 3* N_f2 + 6 
+        
+        # Initialise matrices to store the LU decomposition matrix and pivot vector
+        self.LU_matrix  = np.zeros((N_frames, dimension, dimension))
+        self.piv_vector = np.zeros((N_frames, dimension))
+
+        self.solution = Solution()
+
+        self.solution.time = np.zeros(N_frames)
+        self.solution.psi  = np.zeros((N_frames, 3*self.mesh.elements))
+        self.solution.f1   = np.zeros((N_frames, 3*len(self.flagellum_1[0].r)))
+        self.solution.u    = np.zeros((N_frames,3))
+        self.solution.omega= np.zeros((N_frames,3))
+
+        if self.flagellum_2 is not None:
+            self.solution.f2   = np.zeros((N_frames, 3*len(self.flagellum_2[0].r)))
+
+        super().__post_init__()
+
+        self.populate_grand_mobility_matrix() 
+
+
+    def populate_grand_mobility_matrix(self):
+        """
+        Load the mobility matrices of the flagella of each frame. The only thing that changes over time is
+        the interaction between the cell body and the flagella.
+
+        This function populates the LU_matrix and piv_vector attributes of the Swimmer class.
+
+    
+        """
+
+        Mh,_,_,_  = self.construct_mobility_matrix()   
+        r, c      = np.shape(Mh)     
+
+
+        if self.flagellum_2 is None:
+            print("Populating flagellum")
+            for i, frame in enumerate(self.flagellum_1):
+                Mf1  = frame.construct_mobility_matrix()
+                Mf1h = frame.calc_interaction(self.mesh.centroids)
+                Mhf1 = FlowStokes(self.mesh, frame.r).MATRIX
+
+                V_h  = np.tile(np.eye(3), int(r/3)).T       
+                V_f1 = np.tile(np.eye(3), int(len(Mf1)/3)).T  # matrix filled with identity blocks (3M, 3)
+                
+                A_h  = self.r_cross_matrix
+                A_f1 = frame.calc_r_cross_matrix(self.mesh.center)
+                
+                F_h  = self.surface_matrix
+                F_f1 = V_f1.T               # Also a matrix filled with identity blocks but then (3, 3M)
+                
+                T_h  = self.torque_matrix
+                T_f1 = A_f1.T
+        
+
+                swimmer_matrix = np.block([
+                    [Mh,   Mf1h,  -V_h,  -A_h    ],
+                    [Mhf1, Mf1,   -V_f1, -A_f1   ],
+                    [F_h,  F_f1,  np.zeros((3,6))],
+                    [T_h,  T_f1,  np.zeros((3,6))]
+                ])
+                self.LU_matrix[i], self.piv_vector[i] = lu_factor(swimmer_matrix)
+
+        
+        else:
+            print("Populating both flagella")
+            for i, (frame_1, frame_2) in enumerate(zip(self.flagellum_1,self.flagellum_2)):
+                Mf1  = frame_1.construct_mobility_matrix()
+                Mf1h = frame_1.calc_interaction(self.mesh.centroids)
+                Mhf1 = FlowStokes(self.mesh, frame_1.r).MATRIX
+                Mf1f2 = frame_1.calc_interaction(frame_2.r)
+
+                Mf2  = frame_2.construct_mobility_matrix()
+                Mf2h = frame_2.calc_interaction(self.mesh.centroids)
+                Mhf2 = FlowStokes(self.mesh, frame_2.r).MATRIX
+                Mf2f1 = frame_2.calc_interaction(frame_1.r)
+
+                V_h  = np.tile(np.eye(3), int(r/3)).T       
+                V_f1 = np.tile(np.eye(3), int(len(Mf1)/3)).T  # matrix filled with identity blocks (3M, 3)
+                V_f2 = np.tile(np.eye(3), int(len(Mf2)/3)).T  # matrix filled with identity blocks (3M, 3)
+
+                A_h  = self.r_cross_matrix
+                A_f1 = frame_1.calc_r_cross_matrix(self.mesh.center)
+                A_f2 = frame_2.calc_r_cross_matrix(self.mesh.center)
+
+                F_h  = self.surface_matrix
+                F_f1 = V_f1.T               # Also a matrix filled with identity blocks but then (3, 3M)
+                F_f2 = V_f2.T
+
+                T_h  = self.torque_matrix
+                T_f1 = A_f1.T
+                T_f2 = A_f2.T
+
+                swimmer_matrix = np.block([
+                    [Mh,   Mf1h,  Mf2h,  -V_h,  -A_h    ],
+                    [Mhf1, Mf1,   Mf2f1, -V_f1, -A_f1   ],
+                    [Mhf2, Mf1f2, Mf2,   -V_f2, -A_f2   ],
+                    [F_h,  F_f1,  F_f2,  np.zeros((3,6))],
+                    [T_h,  T_f1,  T_f2,  np.zeros((3,6))],
+                ])
+                self.LU_matrix[i], self.piv_vector[i] = lu_factor(swimmer_matrix)
+
+        print(f"Loaded {len(self.flagellum_1)} frames with {self.flagellum_1[0].Nf} elements!")
+
+
+        
+
+    
+    
     
 
 
