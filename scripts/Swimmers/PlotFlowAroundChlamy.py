@@ -52,7 +52,7 @@ zbase = 0
 
 
 lf = waveformfile["lf0"][0,0]
-fps = waveformfile["fps"][0]
+fps = waveformfile["fps"][0][0]
 dt = 1 /fps
 
 
@@ -178,7 +178,7 @@ solution = chlamy.solve(find_flow, dt)
 # NOTE: you could include the loop below into the loop above. However, the loop below is only for visualisation purposes,
 #       which is why it is kept separate from the simulation loop above.
 
-# you could also load a pre calculated bem.FlowStokes object here instead of calculating it again every run.
+
 
 Nx=200 + 1
 Ny=200 + 1
@@ -204,6 +204,8 @@ tmp_dir = "frames"
 
 os.makedirs(tmp_dir, exist_ok=True)
 frame_files = []
+
+# you could also load a pre calculated bem.FlowStokes object here instead of calculating it again every run.
 
 #=====open pre-saved flowstokes object=======
 # with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/flowstokes_object.pkl", 'rb') as file:
