@@ -198,7 +198,7 @@ class MobilityProblem(BaseSystem):
     initial_position    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))  
     initial_orientation :np.ndarray = field(default_factory=lambda: np.array([1,0,0]))
 
-    particle_velocity    :float|int = field(default_factory=lambda: 0)
+    particle_velocity   :float|int = field(default_factory=lambda: 0)
 
     
 
@@ -217,7 +217,7 @@ class MobilityProblem(BaseSystem):
         V = np.tile(np.eye(3), int(r/3)).T
 
         # cross product matrix to be multiplied with omega
-        A = self.r_cross
+        A = self.r_cross_matrix
 
         # force and torque free constraints
         F = self.surface_matrix
