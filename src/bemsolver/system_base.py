@@ -5,7 +5,7 @@ from scipy.linalg import lu_factor, lu_solve
 from abc import ABC, abstractmethod
 
 from .mesh import Mesh
-from .utils import find_panel_data, U_colloc
+from .utils import find_panel_data, U_colloc, skew_stack
 from .kernels import stresslet_vectorized, line_singularity_vectorized
 from .quadrature import triquad
 
@@ -52,7 +52,7 @@ class BaseSystem:
             else:
                 panel=self.mesh.panels[i]
 
-            singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
+            singularity_contribution, area, torque_tensor = self.calc_mobility_contribution(panel)
             
             MATRIX[0:3*M, 3*i:3*i+3]     = singularity_contribution.reshape(3*M, 3)
 
@@ -72,7 +72,7 @@ class BaseSystem:
         self.MATRIX          = MATRIX
         self.surface_matrix  = surface_matrix
         self.torque_matrix   = torque_matrix
-        self.r_cross_matrix  = -_skew_stack(self.evaluation_points)    # Add the minus since we want cross r (see bottom)
+        self.r_cross_matrix  = -skew_stack(self.evaluation_points)    # Add the minus since we want cross r (see bottom)
 
         return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
     
@@ -204,19 +204,19 @@ class BaseSystem:
         torque_tensor = coord.T @ torque_tensor @ coord
 
         # Calculate [r]x which is the matrix representation of the cross product of r with an arbitrary vector.
-        r_cross=np.zeros((3,3))
+        # r_cross=np.zeros((3,3))
 
-        r_cross[0,1] =  cent_pt[2]
-        r_cross[0,2] = -cent_pt[1]
-        r_cross[1,2] =  cent_pt[0]
+        # r_cross[0,1] =  cent_pt[2]
+        # r_cross[0,2] = -cent_pt[1]
+        # r_cross[1,2] =  cent_pt[0]
 
-        r_cross[1,0] = -r_cross[0,1]
-        r_cross[2,0] = -r_cross[0,2]
-        r_cross[2,1] = -r_cross[1,2]
+        # r_cross[1,0] = -r_cross[0,1]
+        # r_cross[2,0] = -r_cross[0,2]
+        # r_cross[2,1] = -r_cross[1,2]
 
-        r_cross = coord.T @ r_cross @ coord
+        # r_cross = coord.T @ r_cross @ coord
 
-        return A_global, area, torque_tensor, r_cross
+        return A_global, area, torque_tensor#, r_cross
     
 
 
@@ -224,27 +224,7 @@ class BaseSystem:
 
 
 
-def _skew_stack(r):
-    """
-    r: (M,3) input coordinates
-    returns: (3M,3) stacked skew-symmetric matrices
-    """
-    x = r[:, 0]
-    y = r[:, 1]
-    z = r[:, 2]
 
-    # Build all skew matrices in a (M,3,3) array
-    A = np.zeros((len(r), 3, 3))
-
-    A[:, 0, 1] = -z
-    A[:, 0, 2] =  y
-    A[:, 1, 0] =  z
-    A[:, 1, 2] = -x
-    A[:, 2, 0] = -y
-    A[:, 2, 1] =  x
-
-    # Stack them vertically  (3M, 3)
-    return A.reshape(-1, 3)
 
 
 
