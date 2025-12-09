@@ -3,7 +3,7 @@ import numpy as np
 
 gamma_dot=0.5
 
-def find_flow(x):
+def find_flow(t,x):
     U = np.zeros(3)
 
     U[0] = 0 #gamma_dot * x[1]
@@ -102,7 +102,7 @@ for i, iter in enumerate(time_indices):
 
     Q = solution.rotation_matrices[iter]
 
-    U, W, E = find_flow(solution.X[iter])
+    U, W, E = find_flow(iter*dt, solution.X[iter])
     U_body, W_body, E_body = rotate_BCs(Q, U, W, E)
     psi, u, omega = solution.psi[iter], solution.u[iter], solution.omega[iter]
 

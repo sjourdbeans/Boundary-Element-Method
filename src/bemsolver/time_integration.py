@@ -29,14 +29,15 @@ def vector_to_quaternion_from_x(p):
 
 def RK4(RHS :Callable[[np.ndarray], np.ndarray],
         Y   :np.ndarray,
+        t   :float,
         dt  :float)->np.ndarray:
     """
     Simple RK4 function that integrates the RHS of the ODE to the next iteration
     """
-    k1 = RHS(Y)                      
-    k2 = RHS(Y + 0.5*dt*k1)
-    k3 = RHS(Y + 0.5*dt*k2)
-    k4 = RHS(Y + dt*k3)
+    k1 = RHS(t, Y)                      
+    k2 = RHS(t + dt/2, Y + 0.5*dt*k1)
+    k3 = RHS(t + dt/2, Y + 0.5*dt*k2)
+    k4 = RHS(t + dt, Y + dt*k3)
 
     Y_next = Y + (dt/6.0) * (k1 + 2.0*k2 + 2.0*k3 + k4)
     Y_next[3:]/=np.linalg.norm(Y_next[3:])
