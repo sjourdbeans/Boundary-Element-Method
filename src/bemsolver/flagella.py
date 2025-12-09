@@ -3,7 +3,7 @@ from typing import Optional
 from dataclasses import dataclass, field
 from scipy.linalg import lu_factor, lu_solve
 
-from .utils import U_colloc
+from .utils import U_colloc, skew_stack
 from .kernels import stokeslet, tangential
 
 @dataclass  
@@ -156,6 +156,8 @@ class SlenderBody:
         
         self.r        = self.r[self.indstart+1:]
         self.tangents = self.tangents[self.indstart+1:]
+
+        
 
 
 
@@ -415,6 +417,27 @@ class SlenderBody:
         interaction_matrix = 1/(8*np.pi) * M
         return interaction_matrix
     
+    
+    def calc_r_cross_matrix(self, X_center:np.ndarray=np.zeros(3))->np.ndarray:
+        """
+        Calculate the torque matrix at given center points.
+
+        Parameters
+        ----------
+        X_center            : numpy array (3,)
+                             Reference point for the torque, e.g. center of the cell body.
+        Returns
+        -------
+        r_cross_matrix      : numpy array (3M, 3)
+                             The matrix representing the cross product of r with an arbitrary vector.
+        """
+
+        R = self.r - X_center  # position vectors from center points to flagellum elements
+        
+        # Calculate r cross matrix at the center points
+        r_cross_matrix = skew_stack(R)    
+
+        return r_cross_matrix
 
     
 

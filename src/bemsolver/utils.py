@@ -168,3 +168,25 @@ def fix_gmsh_normals(nodes, triangles, center=None):
     normals /= np.linalg.norm(normals, axis=1)[:, None]
 
     return triangles, normals
+
+def skew_stack(r):
+    """
+    r: (M,3) input coordinates
+    returns: (3M,3) stacked skew-symmetric matrices
+    """
+    x = r[:, 0]
+    y = r[:, 1]
+    z = r[:, 2]
+
+    # Build all skew matrices in a (M,3,3) array
+    A = np.zeros((len(r), 3, 3))
+
+    A[:, 0, 1] = -z
+    A[:, 0, 2] =  y
+    A[:, 1, 0] =  z
+    A[:, 1, 2] = -x
+    A[:, 2, 0] = -y
+    A[:, 2, 1] =  x
+
+    # Stack them vertically  (3M, 3)
+    return A.reshape(-1, 3)
