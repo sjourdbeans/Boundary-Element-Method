@@ -1,7 +1,29 @@
 import bemsolver as bem
 import numpy as np
 
-gamma_dot=0.5
+import matplotlib as mpl
+
+# Set tick direction globally
+mpl.rcParams['xtick.direction'] = 'in'
+mpl.rcParams['ytick.direction'] = 'in'
+mpl.rcParams['xtick.top'] = True
+mpl.rcParams['ytick.right'] = True
+
+mpl.rcParams['xtick.minor.visible'] = True
+mpl.rcParams['ytick.minor.visible'] = True
+
+import os
+os.environ["PATH"] += ":/usr/bin"
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams["font.family"]= "Palatino"
+mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
+mpl.rcParams["xtick.labelsize"]=13
+mpl.rcParams["ytick.labelsize"]=13
+mpl.rcParams["axes.labelsize"]=15
+mpl.rcParams["axes.titlesize"]=15
+mpl.rcParams["legend.fontsize"]=13
+
+gamma_dot=1
 
 def find_flow(t,x):
     U = np.zeros(3)
@@ -45,8 +67,8 @@ solution = sys.RBM_over_time(T,dt)
 
 Nx=200 + 1
 Ny=200 + 1
-xlim=3
-ylim=3
+xlim=5
+ylim=5
 
 x = np.linspace(-xlim, xlim, Nx)
 y = np.linspace(-ylim, ylim, Ny)
@@ -82,7 +104,7 @@ import os
 import imageio.v2 as imageio
 
 # === USER INPUT ===
-savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Jeffrey-orbit/Jeffrey-orbit_class-test.mp4"
+savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Jeffrey-orbit/Jeffrey-orbit_with_disturbance.mp4"
 tmp_dir = "frames"
 fps = 10
 quiver_density = 8
@@ -103,22 +125,28 @@ for i, iter in enumerate(time_indices):
     Q = solution.rotation_matrices[iter]
 
     U, W, E = find_flow(iter*dt, solution.X[iter])
-    U_body, W_body, E_body = rotate_BCs(Q, U, W, E)
     psi, u, omega = solution.psi[iter], solution.u[iter], solution.omega[iter]
 
-    U_field = interaction.calc_vector_field(psi, U_body, W_body, E_body)
+    U_total =(U - u)
+    W_total =(W - omega)
+
+    U_body, W_body, E_body = rotate_BCs(Q, U_total,W_total, E)
+    
+
+    U_field = interaction.calc_vector_field(psi, U_body , W_body, E_body)
 
     fig = interaction.plot_vector_field(
         x, y, U_field, max_mag,
         quiver_density=quiver_density,
         vector_scale=vector_scale
     )
+    p_body = solution.X[iter,3:]
 
     fig.set_size_inches(10, 8)
     ax = fig.axes[0]
     ax.set_title(f"t = {solution.time[iter]:.2f} s")
     ax.plot(mesh.isosurface[:,0],-mesh.isosurface[:,1],color='r')
-
+    ax.quiver(0,0,p_body[0],p_body[1])
     frame_path = os.path.join(tmp_dir, f"frame_{i:04d}.png")
     fig.savefig(frame_path, dpi=150)
     plt.close(fig)
