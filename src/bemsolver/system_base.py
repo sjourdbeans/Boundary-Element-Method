@@ -59,9 +59,7 @@ class BaseSystem:
             surface_matrix[:,3*i:3*i+3]  = area * np.eye(3)
 
             torque_matrix[:,3*i:3*i+3]   = torque_tensor
-            
-            # r_cross_matrix[3*i:3*i+3,:]  = r_cross
-        
+                    
 
 
         if self.UseSecondKindIntEquation:
@@ -72,7 +70,7 @@ class BaseSystem:
         self.MATRIX          = MATRIX
         self.surface_matrix  = surface_matrix
         self.torque_matrix   = torque_matrix
-        self.r_cross_matrix  = -skew_stack(self.evaluation_points)    # Add the minus since we want cross r (see bottom)
+        self.r_cross_matrix  = skew_stack(self.evaluation_points)    
 
         return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
     
@@ -203,20 +201,9 @@ class BaseSystem:
 
         torque_tensor = coord.T @ torque_tensor @ coord
 
-        # Calculate [r]x which is the matrix representation of the cross product of r with an arbitrary vector.
-        # r_cross=np.zeros((3,3))
+        
 
-        # r_cross[0,1] =  cent_pt[2]
-        # r_cross[0,2] = -cent_pt[1]
-        # r_cross[1,2] =  cent_pt[0]
-
-        # r_cross[1,0] = -r_cross[0,1]
-        # r_cross[2,0] = -r_cross[0,2]
-        # r_cross[2,1] = -r_cross[1,2]
-
-        # r_cross = coord.T @ r_cross @ coord
-
-        return A_global, area, torque_tensor#, r_cross
+        return A_global, area, torque_tensor
     
 
 
