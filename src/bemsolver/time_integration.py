@@ -13,17 +13,11 @@ def vector_to_quaternion_from_x(p):
     p = np.array(p, dtype=float)    
     p /= np.linalg.norm(p)  # ensure it's a unit vector
 
-    # Define reference vector (x-axis)
-    ex = np.array([1.0, 0.0, 0.0])
-
-    # Compute rotation aligning ex → p
+    # Define reference vector (minus x-axis)
+    ex = np.array([-1.0, 0.0, 0.0])
     rot, _ = R.align_vectors([p], [ex])
 
-    # Get quaternion in SciPy's format [x, y, z, w]
     q = rot.as_quat(scalar_first=True)
-
-    # Reorder to [w, x, y, z] if you prefer that convention
-    # q = np.roll(q_scipy, 1)
 
     return q
 
@@ -41,8 +35,20 @@ def RK4(RHS :Callable[[np.ndarray], np.ndarray],
 
     Y_next = Y + (dt/6.0) * (k1 + 2.0*k2 + 2.0*k3 + k4)
     Y_next[3:]/=np.linalg.norm(Y_next[3:])
+    
     return Y_next
 
+def forward_euler(RHS :Callable[[np.ndarray], np.ndarray],
+                  Y   :np.ndarray,
+                  t   :float,
+                  dt  :float)->np.ndarray:
+    """
+    Simple Forward Euler function that integrates the RHS of the ODE to the next iteration
+    """
+    Y_next = Y + dt * RHS(t, Y)
+    Y_next[3:]/=np.linalg.norm(Y_next[3:])
+   
+    return Y_next
 
 def rotate_BCs(Q, U, W, E):
     """

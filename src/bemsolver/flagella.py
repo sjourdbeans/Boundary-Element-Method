@@ -87,7 +87,7 @@ class SlenderBody:
         if self.velocity is None:
             self.velocity = np.zeros((len(self.curvature),3))
 
-        self.curvature      /= self.flagellum_length
+        self.curvature       = self.curvature.copy()/self.flagellum_length
 
         Nf                   = len(self.curvature) - 1
         self.ssold           = np.linspace(0,self.flagellum_length, Nf+1)
@@ -257,14 +257,14 @@ class SlenderBody:
         Returns
         -------
         U_t+U_r+U_e+U_f : numpy array (3N,)
-                          The total background flow on each element centroid
+                          The total background flow on each element
         """
         
         rows, columns = np.shape(self.MATRIX)
 
         U_t, U_r, U_e =U_colloc(U,W, self.r,int(rows/3), E) 
 
-        return U_t+U_r+U_e + self.velocity.flatten()
+        return U_t+U_r+U_e - self.velocity.flatten()
             
             
 
@@ -332,6 +332,7 @@ class SlenderBody:
         for i in range(self.Nf):
             ti = self.tangents[i]
             tt = np.outer(ti, ti)
+            # Hi = (-constant[i] + 1)*np.eye(3) - (constant[i] + 3)*tt
             Hi = (constant[i] - 1)*np.eye(3) + (constant[i] + 3)*tt
             Hi /= self.element_lengths[i]
             H[3*i:3*i+3, 3*i:3*i+3] = Hi
@@ -339,7 +340,7 @@ class SlenderBody:
         # H is a block diagonal matrix
 
         # Assemble the total mobility matrix
-        K = -1/(8*np.pi)*(G - H - L)
+        K = 1/(8*np.pi)*(G - H - L)
 
         return  K
     

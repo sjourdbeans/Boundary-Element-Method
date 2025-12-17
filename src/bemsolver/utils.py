@@ -181,12 +181,12 @@ def skew_stack(r):
     # Build all skew matrices in a (M,3,3) array
     A = np.zeros((len(r), 3, 3))
 
-    A[:, 0, 1] = -z
-    A[:, 0, 2] =  y
-    A[:, 1, 0] =  z
-    A[:, 1, 2] = -x
-    A[:, 2, 0] = -y
-    A[:, 2, 1] =  x
+    A[:, 0, 1] =  z
+    A[:, 0, 2] = -y
+    A[:, 1, 0] = -z
+    A[:, 1, 2] =  x
+    A[:, 2, 0] =  y
+    A[:, 2, 1] = -x
 
     # Stack them vertically  (3M, 3)
     return A.reshape(-1, 3)

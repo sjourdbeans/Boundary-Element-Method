@@ -273,6 +273,7 @@ class MobilityProblem(BaseSystem):
 
 
         """
+
         # Construct the grand mobility matrix
         self.construct_grand_mobility_matrix()
         
@@ -311,20 +312,22 @@ class MobilityProblem(BaseSystem):
 
         # Set initial values to solution file
         solution.psi[0]   = self.psi
-        solution.u[0]     = self.u
-        solution.omega[0] = self.omega
+        solution.u[0]     = Q_0 @ self.u
+        solution.omega[0] = Q_0 @ self.omega
 
 
         # Loop through time
-        for k, t in enumerate(solution.time[:-1]):    
+        for k, t in enumerate(solution.time[:-1]):   
 
             # Calculate the next timestep
             x, p, Q = self.solve_RBM(x, p, t, dt)
 
             # Save values to solution file
             solution.psi[k+1]   = self.psi
-            solution.u[k+1]     = self.u
-            solution.omega[k+1] = self.omega
+
+            # Rotate (Angular velocity to lab frame)
+            solution.u[k+1]     = Q @ self.u
+            solution.omega[k+1] = Q @ self.omega
 
             solution.X[k+1,:3]   = x
             solution.X[k+1, 3:]  = p
@@ -385,8 +388,8 @@ class MobilityProblem(BaseSystem):
         # Convert quaternion vector to cartesian matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
 
-        # Retrieve new orientation
-        p = Q[:,0]
+        # Retrieve new orientation (minus because the reference axis is negative x)
+        p = -Q[:,0]
 
         return x, p, Q
 
@@ -433,10 +436,12 @@ class MobilityProblem(BaseSystem):
         # Transform velocity back to the lab frame
         Q = R.from_quat(q, scalar_first=True).as_matrix()
 
+        # Rotate (angular) velocity back to lab frame  (particle velocity term is added if you want it to have constant velocity)
         u_lab = Q @ (u+self.particle_velocity*np.array([1, 0, 0]))
+        omega_lab = Q @ omega
 
         # Calculate the time derivative of the quaternion vector
-        q_dot = omega_to_quat_dot(q, omega)
+        q_dot = omega_to_quat_dot(q, omega_lab)
 
         # Make vector containing the time derivatives
         Y_dot = np.hstack((u_lab,q_dot))
