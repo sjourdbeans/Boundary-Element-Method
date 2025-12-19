@@ -1,8 +1,5 @@
 import numpy as np
-from typing import Optional
-from dataclasses import dataclass, field
-from scipy.linalg import lu_factor, lu_solve
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from .mesh import Mesh
 from .utils import find_panel_data, U_colloc, skew_stack
@@ -15,6 +12,32 @@ from .quadrature import triquad
 
 @dataclass
 class BaseSystem:
+    """
+
+    This class contains the core code that calculates the mobility matrix of the mesh used. 
+    However, this class is not called by itself but it is instead used as a parent class.
+    
+    For example in stokes_problems.py there are two child classes of BaseSystem.
+        - ResistanceProblem
+        - MobilityProblem
+    This means that when one of these classes is called it also needs the ``mesh`` argument,
+    but then it also has access to all attributes and methods of BaseSystem.
+
+    Parameters
+    ----------
+    mesh    : Mesh
+              Mesh object which represents the cell body    
+
+    Methods
+    -------
+    ``__post_init__()``
+        Initializes the base system by constructing the mobility matrix and related matrices (e.g., surface,
+        torque, and cross-product matrices) for the mesh.
+    ``construct_mobility_matrix()``
+        Builds the mobility matrix for the mesh, including double-layer and single-layer potentials.
+    ``set_boundary_condition(U, W, E)``
+        Sets the boundary conditions (translational velocity U, angular velocity W, strain rate E) on the mesh.
+    """
 
 
     mesh:Mesh
@@ -64,8 +87,6 @@ class BaseSystem:
 
         if self.UseSecondKindIntEquation:
             MATRIX= 0.5*np.eye(3*N) + MATRIX
-            
-
         
         self.MATRIX          = MATRIX
         self.surface_matrix  = surface_matrix
@@ -79,6 +100,23 @@ class BaseSystem:
                                U        :np.ndarray,
                                W        :np.ndarray,
                                E        :np.ndarray=np.zeros((3,3)))->np.ndarray:
+        """
+        Set the boundary condition on the body coordinates.
+
+        Parameters
+        ----------
+        U       : numpy array (3,)
+                  Translational background flow
+        W       : numpy array (3,)
+                  Background vorticity vector
+        E       : numpy array (3,3)
+                  Background strain rate tensor
+        
+        Returns
+        -------
+        U_t+U_r+U_e : numpy array (3N,)
+                      The total background flow on each element
+        """
         
         
         r, c = np.shape(self.MATRIX)
