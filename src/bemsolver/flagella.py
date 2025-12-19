@@ -3,7 +3,7 @@ from typing import Optional
 from dataclasses import dataclass, field
 from scipy.linalg import lu_factor, lu_solve
 
-from .utils import U_colloc
+from .utils import U_colloc, skew_stack
 from .kernels import stokeslet, tangential
 
 @dataclass  
@@ -37,6 +37,8 @@ class SlenderBody:
     smin            : float (optional) automatically set to 0.15
                       Starting arclength of the curve in terms of its length. Autmatically set to start 
                       at 0.15L to avoid being to close to the cell body.
+    velocity        : numpy array (optional) (N, 3) automatically set to zeros(N,3)
+                      The velocity of the body at each element (Flagellum velocity).
 
     Example
     -------
@@ -75,18 +77,23 @@ class SlenderBody:
     flagellum_length    : int|float             = field(default_factory=lambda: 10)
     flagellum_radius    : int|float             = field(default_factory=lambda: 0.2) 
     smin                : int|float             = field(default_factory=lambda: 0.15)
+    velocity            : np.ndarray            = field(default_factory=lambda: None)
 
 
     def __post_init__(self):
         if len(self.curvature)!= len(self.torsion):
             raise IndexError(f"Curvatures and torsion must have the same length ({len(self.curvature)} != {len(self.torsion)})")
 
+        if self.velocity is None:
+            self.velocity = np.zeros((len(self.curvature),3))
 
-        self.curvature      /= self.flagellum_length
+        self.curvature       = self.curvature.copy()/self.flagellum_length
 
         Nf                   = len(self.curvature) - 1
         self.ssold           = np.linspace(0,self.flagellum_length, Nf+1)
         self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
+
+        self.velocity        = self.velocity[self.indstart + 1 :]
 
         self.ds              = self.ssold[1]-self.ssold[0]
 
@@ -149,6 +156,8 @@ class SlenderBody:
         
         self.r        = self.r[self.indstart+1:]
         self.tangents = self.tangents[self.indstart+1:]
+
+        
 
 
 
@@ -247,15 +256,15 @@ class SlenderBody:
         
         Returns
         -------
-        U_t+U_r+U_e : numpy array (3N,)
-                      The total background flow on each element centroid
+        U_t+U_r+U_e+U_f : numpy array (3N,)
+                          The total background flow on each element
         """
         
         rows, columns = np.shape(self.MATRIX)
 
-        U_t, U_r, U_e =U_colloc(U,W, self.r,int(rows/3), E)
+        U_t, U_r, U_e =U_colloc(U,W, self.r,int(rows/3), E) 
 
-        return U_t+U_r+U_e 
+        return U_t+U_r+U_e - self.velocity.flatten()
             
             
 
@@ -323,6 +332,7 @@ class SlenderBody:
         for i in range(self.Nf):
             ti = self.tangents[i]
             tt = np.outer(ti, ti)
+            # Hi = (-constant[i] + 1)*np.eye(3) - (constant[i] + 3)*tt
             Hi = (constant[i] - 1)*np.eye(3) + (constant[i] + 3)*tt
             Hi /= self.element_lengths[i]
             H[3*i:3*i+3, 3*i:3*i+3] = Hi
@@ -330,7 +340,7 @@ class SlenderBody:
         # H is a block diagonal matrix
 
         # Assemble the total mobility matrix
-        K = -1/(8*np.pi)*(G - H - L)
+        K = 1/(8*np.pi)*(G - H - L)
 
         return  K
     
@@ -408,6 +418,27 @@ class SlenderBody:
         interaction_matrix = 1/(8*np.pi) * M
         return interaction_matrix
     
+    
+    def calc_r_cross_matrix(self, X_center:np.ndarray=np.zeros(3))->np.ndarray:
+        """
+        Calculate the torque matrix at given center points.
+
+        Parameters
+        ----------
+        X_center            : numpy array (3,)
+                             Reference point for the torque, e.g. center of the cell body.
+        Returns
+        -------
+        r_cross_matrix      : numpy array (3M, 3)
+                             The matrix representing the cross product of r with an arbitrary vector.
+        """
+
+        R = self.r - X_center  # position vectors from center points to flagellum elements
+        
+        # Calculate r cross matrix at the center points
+        r_cross_matrix = skew_stack(R)    
+
+        return r_cross_matrix
 
     
 

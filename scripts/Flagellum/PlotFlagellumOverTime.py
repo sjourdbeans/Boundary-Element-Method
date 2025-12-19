@@ -94,7 +94,7 @@ Ng = np.shape(xg)[0]
 
 points = np.vstack((xg, yg, zg)).T
 
-savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Flagella/flagellum.mp4"
+savepath = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Flagella/flagellum_test.mp4"
 tmp_dir = "frames"
 
 os.makedirs(tmp_dir, exist_ok=True)
@@ -113,29 +113,26 @@ for frame in range(len(waveformfile["kappasave"])):
     curv_2 = -waveformfile["kappasave"][frame,1,1:] 
     theta_0_2 = waveformfile["kappasave"][frame,1,0]
     tors_2 = np.zeros_like(curv_2)
-    # tors_2[0]=4
 
     initial_angle_2 =np.pi -(thetar - phi_body) - theta_0_2 
-    # print(initial_angle_2)
+    
     curv_test = 2*np.ones(30)
     tors_test = np.zeros_like(curv_test)
 
-    flag2 = bem.SlenderBody(curv_2,tors_2,theta_0=initial_angle_2,flagellum_length=lf,base_position=base_position_2, smin=0,rho_0=0)
+    flag2 = bem.SlenderBody(curv_2,tors_2,theta_0=initial_angle_2,flagellum_length=lf,base_position=base_position_2, smin=0,
+                            velocity=vel_2)
     
 
     M = flag2.construct_mobility_matrix()
 
-    vel_2_flat = vel_2[flag2.indstart+1:].flatten()
+    # vel_2_flat = vel_2[flag2.indstart+1:].flatten()
 
-    RHS  = flag2.set_boundary_condition(U,W,E) + vel_2_flat
+    RHS  = flag2.set_boundary_condition(U,W,E)# + vel_2_flat
 
     f = np.linalg.solve(M, -RHS)
 
     fq = f.reshape(int(len(f)/3),3)
 
-    # total_force = np.tile(np.eye(3), int(len(f)/3)) @ f
-
-    # print(flag2.tangents[:,1])
 
     K = flag2.calc_interaction(points)
     u_field  = K @ f
@@ -177,23 +174,7 @@ for frame in range(len(waveformfile["kappasave"])):
     plt.axis('equal')
     plt.xlim(-15,15)
     plt.ylim(0,30)
-    # plt.show()
 
-    # fig = plt.figure(figsize=(6,5))
-    # ax = fig.add_subplot(projection='3d')
-    # ax.plot(flag2.r[:,0],flag2.r[:,1],flag2.r[:,2], color='r')
-    # ax.view_init( azim=60)
-    # ax.set_xlabel(r'$x$ [$\mu$m]',labelpad=15)
-    # ax.set_ylabel(r'$y$ [$\mu$m]',labelpad=15)
-    # ax.set_zlabel(r'$z$ [$\mu$m]',labelpad=15)
-    # # ax.view_init(elev=0, azim=60)
-    # ax.set_xlim(-15,15)
-    # ax.set_ylim(0,30)
-    # ax.set_zlim(0,30)
-    # plt.zlabel("z")
-    # plt.plot(r[:,0],r[:,1],'o-')
-    # plt.quiver(r[:,0],r[:,1], t[:,0], t[:,1])
-    # plt.show()
 
     frame_path = os.path.join(tmp_dir, f"frame_{frame:04d}.png")
     fig.savefig(frame_path, dpi=150)

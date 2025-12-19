@@ -32,7 +32,7 @@ plot_image_path = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-P
 
 gamma_dot=0.5
 
-def find_flow(x):
+def find_flow(t,x):
     U = np.zeros(3)
 
     U[0] = gamma_dot * x[1]

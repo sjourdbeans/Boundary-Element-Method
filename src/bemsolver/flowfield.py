@@ -55,12 +55,24 @@ class FlowStokes(BaseSystem):
         # When class is initialised immediately construct interaction matrix
         self.construct_mobility_matrix()
 
+    def set_background_flow(self, 
+                            U          : np.ndarray,
+                            W          : np.ndarray,
+                            E          : np.ndarray):
+        """
+        Set the background flow at the evaluation points.
+        """
+        rows, columns = np.shape(self.MATRIX)
+        U_t, U_r, U_e =U_colloc(U,W, self.evaluation_points,int(rows/3), E)
+        return U_t + U_r + U_e
+
+
 
     def calc_vector_field(self, 
                           psi        : np.ndarray,
                           U          : np.ndarray,
                           W          : np.ndarray,
-                          E          : np.ndarray):
+                          E          : np.ndarray)-> np.ndarray:
         
         xg, yg, zg = self.evaluation_points.T
         Ng = np.shape(xg)[0]
@@ -77,9 +89,7 @@ class FlowStokes(BaseSystem):
 
         self.inside_mask = points_in_polygon(xg, r, x_surface, r_surface)
 
-        rows, columns = np.shape(self.MATRIX)
-        U_t, U_r, U_e =U_colloc(U,W, self.evaluation_points,int(rows/3), E)
-        U_boundary = U_t + U_r + U_e
+        U_boundary = self.set_background_flow(U, W, E)
 
         U_field =U_field + U_boundary
 
@@ -155,11 +165,6 @@ class FlowStokes(BaseSystem):
 
 
 
-        
-
-        
-
-
 
 
 
@@ -167,6 +172,6 @@ class FlowStokes(BaseSystem):
         """
         This method is only available where the boundary condition needs to be set on the surface of the mesh.
         """
-        raise NotImplementedError("FlowStokes does not set boundary conditions!")
+        raise NotImplementedError("FlowStokes does not set boundary conditions! Did you mean FlowStokes.set_background_flow()?")
 
     

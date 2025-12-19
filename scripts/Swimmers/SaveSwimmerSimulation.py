@@ -57,7 +57,7 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
 
     U = np.zeros(3)
 
-    U[0] = 0
+    U[0] = 1000 
     U[1] = 0
     U[2] = 0
 
@@ -74,7 +74,7 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
                             [0,0,0]])
     return U, W, E
 
-mu = 0.9544e-3  # dynamic viscosity [Pa s]
+
 
 
 flagellum_1 = []
@@ -90,14 +90,14 @@ for frame in range(N_frames):
     vely_1 = -waveformfile["vely0"][frame,0] * lf
     velz_1 = np.zeros_like(vely_1) * lf
 
-    vel_1 = np.vstack([velx_1, vely_1, velz_1]).T #* mu
+    vel_1 = np.vstack([velx_1, vely_1, velz_1]).T
 
 
     velx_2 = -waveformfile["velx0"][frame,1] * lf
     vely_2 = waveformfile["vely0"][frame,1] * lf
     velz_2 = np.zeros_like(vely_1) * lf
 
-    vel_2 = np.vstack([velx_2, vely_2, velz_2]).T #* mu
+    vel_2 = np.vstack([velx_2, vely_2, velz_2]).T
 
     # set flagellum shapes and positions
     base_position_1 = np.array([xbase , ybase, zbase]) 
@@ -132,31 +132,27 @@ for frame in range(N_frames):
 # ===================Create swimmer object=====================
 mesh = bem.Mesh(chlamy_path)
 
-chlamy = bem.FreeSwimmer(mesh,
-                        flagellum_1=flagellum_1,flagellum_2=flagellum_2)
+chlamy = bem.Swimmer(mesh,
+                     flagellum_1=flagellum_1,flagellum_2=flagellum_2)
 # =============================================================
 
 
 # ===================Save option 1=====================
 
-# Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_minus_test.pkl", "wb") as f:
-    pickle.dump(chlamy, f)
-
-# print(chlamy.)
-# solution = chlamy.RBM_over_time(dt, find_flow)
-# print(chlamy.solution.omega[0])
+# # Save swimmer object without results (large file)
+# with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/chlamy_swimmer.pkl", "wb") as f:
+#     pickle.dump(chlamy, f)
 
 # =====================================================
 
 
 # solve
-# solution = chlamy.solve(find_flow, dt)
+solution = chlamy.solve(find_flow, dt)
 
 # ===================Save option 2=====================
 
 # # save only the solution (small file)
-# with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/RBM/chlamy_solution.pkl", "wb") as f:
+# with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/result/chlamy_solution.pkl", "wb") as f:
 #     pickle.dump(solution, f)
 
 # =====================================================
@@ -165,7 +161,7 @@ with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/D
 # ===================Save option 3=====================
 
 # save swimmer object with results (large file)
-# with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/chlamy_with_solution.pkl", "wb") as f:
-#     pickle.dump(chlamy, f)
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/test/chlamy_with_solution.pkl", "wb") as f:
+    pickle.dump(chlamy, f)
 
 # =====================================================

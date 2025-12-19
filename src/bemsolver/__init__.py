@@ -10,6 +10,7 @@ from .stokes_problems import MobilityProblem, ResistanceProblem
 from .flowfield import FlowStokes
 from .SaveData import Solution
 from .flagella import SlenderBody
+from .swimmers import Swimmer, FreeSwimmer
 
 __all__ = [
     "Mesh",
@@ -17,7 +18,9 @@ __all__ = [
     "ResistanceProblem",
     "FlowStokes",
     "Solution",
-    "SlenderBody"
+    "SlenderBody",
+    "Swimmer",
+    "FreeSwimmer"
 ]
 
 __version__ = "0.1.0"

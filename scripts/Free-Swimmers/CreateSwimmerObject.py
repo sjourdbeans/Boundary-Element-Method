@@ -74,7 +74,6 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
                             [0,0,0]])
     return U, W, E
 
-mu = 0.9544e-3  # dynamic viscosity [Pa s]
 
 
 flagellum_1 = []
@@ -140,18 +139,14 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_minus_test.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_object.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
-# print(chlamy.)
+
 # solution = chlamy.RBM_over_time(dt, find_flow)
-# print(chlamy.solution.omega[0])
 
 # =====================================================
 
-
-# solve
-# solution = chlamy.solve(find_flow, dt)
 
 # ===================Save option 2=====================
 

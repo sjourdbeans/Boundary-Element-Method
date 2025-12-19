@@ -193,12 +193,12 @@ class MobilityProblem(BaseSystem):
 
     """
     # function to find the flow field at a point x
-    flow_function       :Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]
+    flow_function       :Callable[[float, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]
 
     initial_position    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))  
     initial_orientation :np.ndarray = field(default_factory=lambda: np.array([1,0,0]))
 
-    particle_velocity    :float|int = field(default_factory=lambda: 0)
+    particle_velocity   :float|int = field(default_factory=lambda: 0)
 
     
 
@@ -217,7 +217,7 @@ class MobilityProblem(BaseSystem):
         V = np.tile(np.eye(3), int(r/3)).T
 
         # cross product matrix to be multiplied with omega
-        A = self.r_cross
+        A = self.r_cross_matrix
 
         # force and torque free constraints
         F = self.surface_matrix
@@ -273,6 +273,7 @@ class MobilityProblem(BaseSystem):
 
 
         """
+
         # Construct the grand mobility matrix
         self.construct_grand_mobility_matrix()
         
@@ -307,24 +308,26 @@ class MobilityProblem(BaseSystem):
         x, p = X_0[:3], X_0[3:]
 
         # Calculate the singularity distribution, translational-, and angular velocity for the initial state
-        self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q_0)
+        self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q_0, solution.time[0])
 
         # Set initial values to solution file
         solution.psi[0]   = self.psi
-        solution.u[0]     = self.u
-        solution.omega[0] = self.omega
+        solution.u[0]     = Q_0 @ self.u
+        solution.omega[0] = Q_0 @ self.omega
 
 
         # Loop through time
-        for k, t in enumerate(solution.time[:-1]):    
+        for k, t in enumerate(solution.time[:-1]):   
 
             # Calculate the next timestep
-            x, p, Q = self.solve_RBM(x, p, dt)
+            x, p, Q = self.solve_RBM(x, p, t, dt)
 
             # Save values to solution file
             solution.psi[k+1]   = self.psi
-            solution.u[k+1]     = self.u
-            solution.omega[k+1] = self.omega
+
+            # Rotate (Angular velocity to lab frame)
+            solution.u[k+1]     = Q @ self.u
+            solution.omega[k+1] = Q @ self.omega
 
             solution.X[k+1,:3]   = x
             solution.X[k+1, 3:]  = p
@@ -340,6 +343,7 @@ class MobilityProblem(BaseSystem):
     def solve_RBM(self,
                   x_initial                :np.ndarray,
                   p_initial                :np.ndarray,
+                  t                        :float,
                   dt                       :float)->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Given an initial x and p, calculate the next iteration with timestep dt using rk4 numerical integration.
@@ -350,6 +354,8 @@ class MobilityProblem(BaseSystem):
                       The initial position (x_i)
         p_initial   : numpy array
                       The initial orientation of the particle (p_i)
+        t           : float
+                      current time 
         dt          : float
                       timestep to use for time integration
 
@@ -372,25 +378,25 @@ class MobilityProblem(BaseSystem):
 
         
         # Time integration using RK4, self.quaternion_RK4 is returns the right hand side of the ODE
-        Y_next = RK4(self.quaternion_RK4, Y_0, dt)
+        Y_next = RK4(self.quaternion_RK4, Y_0, t, dt)       # t=0 since time dependence is not inplemented
 
         # Unpack new timestep
         x, q = Y_next[:3], Y_next[3:]
 
-        self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q)
+        self.psi, self.u, self.omega = self.calc_RBM(self.lu, self.piv, x, q, t)
 
         # Convert quaternion vector to cartesian matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
 
-        # Retrieve new orientation
-        p = Q[:,0]
+        # Retrieve new orientation (minus because the reference axis is negative x)
+        p = -Q[:,0]
 
         return x, p, Q
 
 
 
 
-    def quaternion_RK4(self, Y :np.ndarray)->np.ndarray:
+    def quaternion_RK4(self, t:float, Y :np.ndarray)->np.ndarray:
         """
         Function that returns the RHS of the ODE to be integrated over time
 
@@ -406,12 +412,12 @@ class MobilityProblem(BaseSystem):
 
         """
         # Use the LU decomposition to solve the system
-        Y_dot = self.calc_Y_dot(self.lu, self.piv, Y)
+        Y_dot = self.calc_Y_dot(self.lu, self.piv, Y, t)
         
         return Y_dot
     
 
-    def calc_Y_dot(self, lu, piv, Y:np.ndarray):
+    def calc_Y_dot(self, lu, piv, Y:np.ndarray, t:float)->np.ndarray:
         """
         Calculates the current time derivative with the current state, and the LU decomposition
         of the grand mobility matrix.
@@ -425,15 +431,17 @@ class MobilityProblem(BaseSystem):
         q /= np.linalg.norm(q)
 
         # compute RBM of state Y
-        _, u, omega = self.calc_RBM(lu, piv, x ,q)
+        _, u, omega = self.calc_RBM(lu, piv, x ,q, t)
 
         # Transform velocity back to the lab frame
         Q = R.from_quat(q, scalar_first=True).as_matrix()
 
+        # Rotate (angular) velocity back to lab frame  (particle velocity term is added if you want it to have constant velocity)
         u_lab = Q @ (u+self.particle_velocity*np.array([1, 0, 0]))
+        omega_lab = Q @ omega
 
         # Calculate the time derivative of the quaternion vector
-        q_dot = omega_to_quat_dot(q, omega)
+        q_dot = omega_to_quat_dot(q, omega_lab)
 
         # Make vector containing the time derivatives
         Y_dot = np.hstack((u_lab,q_dot))
@@ -441,7 +449,7 @@ class MobilityProblem(BaseSystem):
         return Y_dot
 
 
-    def calc_RBM(self, lu, piv, x, q)->tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def calc_RBM(self, lu, piv, x, q, t)->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Calculates the RBM of the particle at the current state with the LU decomposition
         of the grand mobility matrix.
@@ -457,7 +465,7 @@ class MobilityProblem(BaseSystem):
         """
 
         # Find the current flowfield at x
-        U, W, E = self.flow_function(x)  
+        U, W, E = self.flow_function(t,x)  
         
         # Find cartesian rotation matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()

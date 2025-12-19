@@ -1,11 +1,8 @@
 import numpy as np
-from typing import Optional
-from dataclasses import dataclass, field
-from scipy.linalg import lu_factor, lu_solve
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from .mesh import Mesh
-from .utils import find_panel_data, U_colloc
+from .utils import find_panel_data, U_colloc, skew_stack
 from .kernels import stresslet_vectorized, line_singularity_vectorized
 from .quadrature import triquad
 
@@ -15,6 +12,32 @@ from .quadrature import triquad
 
 @dataclass
 class BaseSystem:
+    """
+
+    This class contains the core code that calculates the mobility matrix of the mesh used. 
+    However, this class is not called by itself but it is instead used as a parent class.
+    
+    For example in stokes_problems.py there are two child classes of BaseSystem.
+        - ResistanceProblem
+        - MobilityProblem
+    This means that when one of these classes is called it also needs the ``mesh`` argument,
+    but then it also has access to all attributes and methods of BaseSystem.
+
+    Parameters
+    ----------
+    mesh    : Mesh
+              Mesh object which represents the cell body    
+
+    Methods
+    -------
+    ``__post_init__()``
+        Initializes the base system by constructing the mobility matrix and related matrices (e.g., surface,
+        torque, and cross-product matrices) for the mesh.
+    ``construct_mobility_matrix()``
+        Builds the mobility matrix for the mesh, including double-layer and single-layer potentials.
+    ``set_boundary_condition(U, W, E)``
+        Sets the boundary conditions (translational velocity U, angular velocity W, strain rate E) on the mesh.
+    """
 
 
     mesh:Mesh
@@ -52,27 +75,23 @@ class BaseSystem:
             else:
                 panel=self.mesh.panels[i]
 
-            singularity_contribution, area, torque_tensor, r_cross = self.calc_mobility_contribution(panel)
+            singularity_contribution, area, torque_tensor = self.calc_mobility_contribution(panel)
             
             MATRIX[0:3*M, 3*i:3*i+3]     = singularity_contribution.reshape(3*M, 3)
 
             surface_matrix[:,3*i:3*i+3]  = area * np.eye(3)
 
             torque_matrix[:,3*i:3*i+3]   = torque_tensor
-            
-            # r_cross_matrix[3*i:3*i+3,:]  = r_cross
-        
+                    
 
 
         if self.UseSecondKindIntEquation:
             MATRIX= 0.5*np.eye(3*N) + MATRIX
-            
-
         
         self.MATRIX          = MATRIX
         self.surface_matrix  = surface_matrix
         self.torque_matrix   = torque_matrix
-        self.r_cross_matrix  = -_skew_stack(self.evaluation_points)    # Add the minus since we want cross r (see bottom)
+        self.r_cross_matrix  = skew_stack(self.evaluation_points)    
 
         return MATRIX, surface_matrix, torque_matrix, r_cross_matrix
     
@@ -81,6 +100,23 @@ class BaseSystem:
                                U        :np.ndarray,
                                W        :np.ndarray,
                                E        :np.ndarray=np.zeros((3,3)))->np.ndarray:
+        """
+        Set the boundary condition on the body coordinates.
+
+        Parameters
+        ----------
+        U       : numpy array (3,)
+                  Translational background flow
+        W       : numpy array (3,)
+                  Background vorticity vector
+        E       : numpy array (3,3)
+                  Background strain rate tensor
+        
+        Returns
+        -------
+        U_t+U_r+U_e : numpy array (3N,)
+                      The total background flow on each element
+        """
         
         
         r, c = np.shape(self.MATRIX)
@@ -203,20 +239,9 @@ class BaseSystem:
 
         torque_tensor = coord.T @ torque_tensor @ coord
 
-        # Calculate [r]x which is the matrix representation of the cross product of r with an arbitrary vector.
-        r_cross=np.zeros((3,3))
+        
 
-        r_cross[0,1] =  cent_pt[2]
-        r_cross[0,2] = -cent_pt[1]
-        r_cross[1,2] =  cent_pt[0]
-
-        r_cross[1,0] = -r_cross[0,1]
-        r_cross[2,0] = -r_cross[0,2]
-        r_cross[2,1] = -r_cross[1,2]
-
-        r_cross = coord.T @ r_cross @ coord
-
-        return A_global, area, torque_tensor, r_cross
+        return A_global, area, torque_tensor
     
 
 
@@ -224,27 +249,7 @@ class BaseSystem:
 
 
 
-def _skew_stack(r):
-    """
-    r: (M,3) input coordinates
-    returns: (3M,3) stacked skew-symmetric matrices
-    """
-    x = r[:, 0]
-    y = r[:, 1]
-    z = r[:, 2]
 
-    # Build all skew matrices in a (M,3,3) array
-    A = np.zeros((len(r), 3, 3))
-
-    A[:, 0, 1] = -z
-    A[:, 0, 2] =  y
-    A[:, 1, 0] =  z
-    A[:, 1, 2] = -x
-    A[:, 2, 0] = -y
-    A[:, 2, 1] =  x
-
-    # Stack them vertically  (3M, 3)
-    return A.reshape(-1, 3)
 
 
 

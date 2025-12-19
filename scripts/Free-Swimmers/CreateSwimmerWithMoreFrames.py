@@ -34,6 +34,7 @@ waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/B
 chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
 
 
+
 cell = waveformfile["Cell"]
 thetar = cell["thetar"].item()[0][0]
 thetal = cell["thetal"].item()[0][0]
@@ -47,34 +48,74 @@ zbase = 0
 
 
 lf = waveformfile["lf0"][0,0]
-fps = waveformfile["fps"][0]
+fps = waveformfile["fps"][0][0]
 dt = 1 /fps
 
 
-def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
-    # no shear flow
-    gamma_dot=0
 
-    U = np.zeros(3)
 
-    U[0] = 0
-    U[1] = 0
-    U[2] = 0
+curvatures_2 = -waveformfile["kappasave"][:,1,1:]
+thetas_2     =  waveformfile["kappasave"][:,1,0]
 
-    # Background vorticity
-    W = np.zeros(3)  
+curvatures_1 =  waveformfile["kappasave"][:,0,1:]
+thetas_1     =  waveformfile["kappasave"][:,0,0]
 
-    W[0] = 0
-    W[1] = 0
-    W[2] = -gamma_dot/2
+n_frames, n_el = curvatures_1.shape
 
-    # Rate of strain tensor
-    E = gamma_dot/2*np.array([[0,1,0],
-                            [1,0,0],
-                            [0,0,0]])
-    return U, W, E
+T = dt*n_frames *10**3  # one beating period, or whatever physical period you have
 
-mu = 0.9544e-3  # dynamic viscosity [Pa s]
+t_frames = np.linspace(0, T, n_frames, endpoint=True)
+
+from scipy.interpolate import CubicSpline
+
+# curvatures: shape (n_frames, n_el)
+# We build a spline that interpolates along axis=0 (time)
+kappa_1_spline = CubicSpline(t_frames, curvatures_1, axis=0)
+theta_1_spline = CubicSpline(t_frames, thetas_1, axis=0)
+velx_1_spline = CubicSpline(t_frames, -waveformfile["velx0"][:,0]*lf, axis=0)
+vely_1_spline = CubicSpline(t_frames, -waveformfile["vely0"][:,0]*lf, axis=0)
+
+kappa_2_spline = CubicSpline(t_frames, curvatures_2, axis=0)
+theta_2_spline = CubicSpline(t_frames, thetas_2, axis=0)
+velx_2_spline = CubicSpline(t_frames, -waveformfile["velx0"][:,1]*lf, axis=0)
+vely_2_spline = CubicSpline(t_frames, waveformfile["vely0"][:,1]*lf, axis=0)
+
+def kappa2_at_time(t):
+    # t can be scalar or array
+    t_mod = np.mod(t, T) 
+    return kappa_2_spline(t)   
+
+def theta2_at_time(t):
+    t_mod = np.mod(t, T) 
+    return theta_2_spline(t)
+
+def vel2_at_time(t):
+    t_mod = np.mod(t, T) 
+    velx = velx_2_spline(t)
+    vely = vely_2_spline(t)
+    velz = np.zeros_like(velx)
+    return np.vstack([velx, vely, velz]).T
+
+def kappa1_at_time(t):
+    # t can be scalar or array
+    t_mod = np.mod(t, T) 
+    return kappa_1_spline(t)   
+
+def theta1_at_time(t):
+    t_mod = np.mod(t, T) 
+    return theta_1_spline(t)
+
+def vel1_at_time(t):
+    t_mod = np.mod(t, T) 
+    velx = velx_1_spline(t)
+    vely = vely_1_spline(t)
+    velz = np.zeros_like(velx)
+    return np.vstack([velx, vely, velz]).T
+
+# time_factor determines the amount of frames
+time_factor:int = 3
+
+time = np.linspace(0, dt*n_frames*10**3, time_factor*n_frames)
 
 
 flagellum_1 = []
@@ -83,30 +124,22 @@ flagellum_2 = []
 N_frames = len(waveformfile["kappasave"])
 
 # loop over all frames to create flagellum objects
-for frame in range(N_frames):
-
-    # Set flagellum velocities
-    velx_1 = -waveformfile["velx0"][frame,0] * lf
-    vely_1 = -waveformfile["vely0"][frame,0] * lf
-    velz_1 = np.zeros_like(vely_1) * lf
-
-    vel_1 = np.vstack([velx_1, vely_1, velz_1]).T #* mu
+for i , t in enumerate(time):
 
 
-    velx_2 = -waveformfile["velx0"][frame,1] * lf
-    vely_2 = waveformfile["vely0"][frame,1] * lf
-    velz_2 = np.zeros_like(vely_1) * lf
+    vel_1 = vel1_at_time(t)
 
-    vel_2 = np.vstack([velx_2, vely_2, velz_2]).T #* mu
+
+    vel_2 = vel2_at_time(t)
 
     # set flagellum shapes and positions
     base_position_1 = np.array([xbase , ybase, zbase]) 
-    curv_1 = waveformfile["kappasave"][frame,0,1:] 
-    theta_0_1 = waveformfile["kappasave"][frame,0,0]
+    curv_1 = kappa1_at_time(t) 
+    theta_0_1 = theta1_at_time(t)
 
     base_position_2 = -base_position_1 
-    curv_2 = -waveformfile["kappasave"][frame,1,1:] 
-    theta_0_2 = waveformfile["kappasave"][frame,1,0]
+    curv_2 = kappa2_at_time(t)
+    theta_0_2 = theta2_at_time(t)
 
     initial_angle_1 = np.pi - (thetal - phi_body) + theta_0_1
     initial_angle_2 = np.pi - (thetar - phi_body) - theta_0_2
@@ -140,12 +173,10 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_minus_test.pkl", "wb") as f:
+with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_time_{time_factor}.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
-# print(chlamy.)
 # solution = chlamy.RBM_over_time(dt, find_flow)
-# print(chlamy.solution.omega[0])
 
 # =====================================================
 
