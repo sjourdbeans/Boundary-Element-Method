@@ -3,7 +3,7 @@ from scipy.spatial.transform import Rotation as R
 from typing import Callable
 
 
-def rpy_to_quat(pitch: float|int, 
+def pyr_to_quat(pitch: float|int, 
                 yaw:float|int, 
                 roll:float|int):
     """
