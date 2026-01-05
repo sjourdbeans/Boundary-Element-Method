@@ -641,11 +641,11 @@ class FreeSwimmer(BaseSystem):
         self.solution.X[0] = X_0
 
         # Set initial quaternion
-        q_0                           = vector_to_quaternion_from_x(initial_orientation)
-        self.solution.quaternions[0]  = q_0
+        q                           = vector_to_quaternion_from_x(initial_orientation)
+        self.solution.quaternions[0]  = q
 
         # Find initial cartesian rotation matrix from quaternion
-        Q_0                                = R.from_quat(q_0, scalar_first=True).as_matrix()
+        Q_0                                = R.from_quat(q, scalar_first=True).as_matrix()
         self.solution.rotation_matrices[0] = Q_0
 
 
@@ -654,7 +654,7 @@ class FreeSwimmer(BaseSystem):
 
         time_index = 0
         # Calculate the singularity distribution, translational-, and angular velocity for the initial state
-        phi, u, omega = self.calc_RBM(time_index, x, q_0, self.solution.time[0])
+        phi, u, omega = self.calc_RBM(time_index, x, q, self.solution.time[0])
 
         self.solution.psi[0]   = phi[:3*self.N_h]
         self.solution.f1[0]    = phi[3*self.N_h:3*self.N_h + 3*self.N_f1]
@@ -672,7 +672,7 @@ class FreeSwimmer(BaseSystem):
             self.solution.time[frame_index+1] = (frame_index+1) * dt
 
             # Calculate the next timestep
-            x, p, Q, phi, u, omega = self.solve_RBM(x, p, frame_index+1, dt)
+            x, q, p, Q, phi, u, omega = self.solve_RBM(x, q, frame_index+1, dt)
 
 
             # Save values to solution file
@@ -690,7 +690,7 @@ class FreeSwimmer(BaseSystem):
             self.solution.X[frame_index+1, 3:]  = p
 
             # Transform the current orientation to quaternion (not necessary for the sim but maybe for post processing)
-            self.solution.quaternions[frame_index+1]        = vector_to_quaternion_from_x(p) 
+            self.solution.quaternions[frame_index+1]        = q #vector_to_quaternion_from_x(p) 
             self.solution.rotation_matrices[frame_index+1]  = Q
 
         return self.solution
@@ -702,7 +702,7 @@ class FreeSwimmer(BaseSystem):
 
     def solve_RBM(self,
                   x_initial                :np.ndarray,
-                  p_initial                :np.ndarray,
+                  q_initial                :np.ndarray,
                   time_index               :int,
                   dt                       :float)->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -738,10 +738,10 @@ class FreeSwimmer(BaseSystem):
         """
         
         # calculate the initial quaternion vector (size=(1,4)) from the initial orientation
-        q_0 = vector_to_quaternion_from_x(p_initial)
+        # q_0 = vector_to_quaternion_from_x(p_initial)
         
         # stack the initial position and quaternion vector into an array for time integration
-        Y_0 = np.hstack((x_initial, q_0))
+        Y_0 = np.hstack((x_initial, q_initial))
 
         
         # Time integration using forward euler, self.calc_RHS returns the right hand side of the ODE
@@ -759,7 +759,7 @@ class FreeSwimmer(BaseSystem):
         # see vector_to_quaternion_from_x in time_integration.py)
         p = -Q[:,0]
 
-        return x, p, Q, phi, u, omega
+        return x, q, p, Q, phi, u, omega
     
 
 
