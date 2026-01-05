@@ -94,13 +94,24 @@ def rotate_BCs(Q, U, W, E):
 
     return U_body, W_body, E_body
 
+# def omega_to_quat_dot(q, omega):
+#     """Compute quaternion derivative dq/dt = 0.5 * Ω(ω) * q for [w,x,y,z]."""
+#     wx, wy, wz = omega
+#     Omega = np.array([
+#         [0.0, -wx, -wy, -wz],
+#         [wx,  0.0,  wz, -wy],
+#         [wy, -wz,  0.0,  wx],
+#         [wz,  wy, -wx,  0.0]
+#     ])
+#     return 0.5 * Omega @ q
+
 def omega_to_quat_dot(q, omega):
-    """Compute quaternion derivative dq/dt = 0.5 * Ω(ω) * q for [w,x,y,z]."""
+    """dq/dt = 0.5 * q ⊗ (0, omega) in the lab frame"""
     wx, wy, wz = omega
     Omega = np.array([
         [0.0, -wx, -wy, -wz],
-        [wx,  0.0,  wz, -wy],
-        [wy, -wz,  0.0,  wx],
-        [wz,  wy, -wx,  0.0]
+        [wx,  0.0, -wz,  wy],
+        [wy,  wz,  0.0, -wx],
+        [wz, -wy,  wx,  0.0]
     ])
     return 0.5 * Omega @ q
