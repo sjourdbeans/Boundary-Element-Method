@@ -40,7 +40,7 @@ thetal = cell["thetal"].item()[0][0]
 phi_body = cell["phi_body"].item()[0][0]
 
 
-xbase = - cell["dist_base"].item()[0][0]
+xbase =  cell["dist_base"].item()[0][0]
 ybase = 0
 zbase = 0
 
@@ -85,15 +85,15 @@ N_frames = len(waveformfile["kappasave"])
 for frame in range(N_frames):
 
     # Set flagellum velocities
-    velx_1 = -waveformfile["velx0"][frame,0] * lf
-    vely_1 = -waveformfile["vely0"][frame,0] * lf
+    velx_1 = waveformfile["velx0"][frame,0] * lf
+    vely_1 = waveformfile["vely0"][frame,0] * lf
     velz_1 = np.zeros_like(vely_1) * lf
 
     vel_1 = np.vstack([velx_1, vely_1, velz_1]).T #* mu
 
 
-    velx_2 = -waveformfile["velx0"][frame,1] * lf
-    vely_2 = waveformfile["vely0"][frame,1] * lf
+    velx_2 = waveformfile["velx0"][frame,1] * lf
+    vely_2 = -waveformfile["vely0"][frame,1] * lf
     velz_2 = np.zeros_like(vely_1) * lf
 
     vel_2 = np.vstack([velx_2, vely_2, velz_2]).T #* mu
@@ -103,12 +103,12 @@ for frame in range(N_frames):
     curv_1 = waveformfile["kappasave"][frame,0,1:] 
     theta_0_1 = waveformfile["kappasave"][frame,0,0]
 
-    base_position_2 = -base_position_1 
+    base_position_2 = base_position_1 
     curv_2 = -waveformfile["kappasave"][frame,1,1:] 
     theta_0_2 = waveformfile["kappasave"][frame,1,0]
 
-    initial_angle_1 = np.pi - (thetal - phi_body) + theta_0_1
-    initial_angle_2 = np.pi - (thetar - phi_body) - theta_0_2
+    initial_angle_1 =  - (thetal - phi_body) + theta_0_1
+    initial_angle_2 =  - (thetar - phi_body) - theta_0_2
 
 
     tors_1 = np.zeros_like(curv_1)
