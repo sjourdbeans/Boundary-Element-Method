@@ -3,6 +3,29 @@ from scipy.spatial.transform import Rotation as R
 from typing import Callable
 
 
+def rpy_to_quat(roll, pitch, yaw):
+    """
+    Convert roll, pitch, yaw to a quaternion vector
+    
+    :param roll: Description
+    :param pitch: Description
+    :param yaw: Description
+    """
+    cr = np.cos(roll/2)
+    sr = np.sin(roll/2)
+    cp = np.cos(pitch/2)
+    sp = np.sin(pitch/2)
+    cy = np.cos(yaw/2)
+    sy = np.sin(yaw/2)
+
+    w = cy*cp*cr + sy*sp*sr
+    x = cy*cp*sr - sy*sp*cr
+    y = cy*sp*cr + sy*cp*sr
+    z = sy*cp*cr - cy*sp*sr
+
+    return np.array([w, x, y, z])
+
+
 
 def vector_to_quaternion_from_x(p):
     """
