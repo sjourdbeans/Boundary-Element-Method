@@ -11,7 +11,7 @@ from .flagella import SlenderBody
 from .flowfield import FlowStokes
 from .SaveData import Solution
 from .utils import points_in_polygon
-from .time_integration import vector_to_quaternion_from_x, rotate_BCs, forward_euler, omega_to_quat_dot
+from .time_integration import rotate_BCs, forward_euler, omega_to_quat_dot, pyr_to_quat
 
 
 
@@ -606,7 +606,7 @@ class FreeSwimmer(BaseSystem):
                       dt                 :float,
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
-                      initial_orientation:np.ndarray = np.array([1, 0, 0])
+                      initial_orientation:np.ndarray = np.array([0, 0, 0])
                       ) -> Solution:
         """
         Solve the mobility problem over time given a function that provides the boundary conditions.
@@ -621,8 +621,7 @@ class FreeSwimmer(BaseSystem):
         initial_position     : numpy array
                               Initial position of the swimmer in cartesian coordinates (standard set to origin)
         initial_orientation  : numpy array
-                              Initial orientation of the swimmer in cartesian coordinates (standard set to x direction).
-                              the vector p=[px, py, pz] is a unit vector.
+                              Initial pitch, yaw, and roll of the swimmer in radians
 
         Returns
         -------
@@ -630,24 +629,26 @@ class FreeSwimmer(BaseSystem):
                            Solution dataclass (SaveData.py) containing the solutions of the simulation.
         """
 
+        pitch, yaw, roll = initial_orientation 
+        q = pyr_to_quat(pitch, yaw, roll)
+
         # Make the function that finds the flow an attribute of FreeSwimmer
         self.flow_function = flow_function
 
         # Make dt an attribute
         self.dt = dt
 
-        # Set initial condition vector and save it
-        X_0 = np.hstack((initial_position, initial_orientation))        
-        self.solution.X[0] = X_0
-
+    
         # Set initial quaternion
-        q                           = vector_to_quaternion_from_x(initial_orientation)
         self.solution.quaternions[0]  = q
 
         # Find initial cartesian rotation matrix from quaternion
         Q_0                                = R.from_quat(q, scalar_first=True).as_matrix()
         self.solution.rotation_matrices[0] = Q_0
 
+        # Set initial condition vector and save it
+        X_0 = np.hstack((initial_position, Q_0[:,0]))        
+        self.solution.X[0] = X_0
 
         # Unpack initial state
         x, p = X_0[:3], X_0[3:]
@@ -712,8 +713,8 @@ class FreeSwimmer(BaseSystem):
         ----------
         x_initial   : numpy array
                       The initial position (x_i)
-        p_initial   : numpy array
-                      The initial orientation of the particle (p_i)
+        q_initial   : numpy array
+                      The initial orientation quaternion of the particle (q_i)
         time_index  : int
                       The current time index 
         dt          : float
@@ -723,6 +724,8 @@ class FreeSwimmer(BaseSystem):
         -------
         x           : numpy array
                       The next position after time dt (x_{i+1})
+        q           : numpy array
+                      The next quaternion after time dt (q_{i+1})
         p           : numpy array
                       The next orientation after time dt (p_{i+1})
         Q           : numpy array (3,3)
@@ -737,8 +740,6 @@ class FreeSwimmer(BaseSystem):
 
         """
         
-        # calculate the initial quaternion vector (size=(1,4)) from the initial orientation
-        # q_0 = vector_to_quaternion_from_x(p_initial)
         
         # stack the initial position and quaternion vector into an array for time integration
         Y_0 = np.hstack((x_initial, q_initial))
@@ -755,9 +756,13 @@ class FreeSwimmer(BaseSystem):
         # Convert quaternion vector to cartesian matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
 
-        # Retrieve new orientation (minus sign because reference axis is -x direction 
-        # see vector_to_quaternion_from_x in time_integration.py)
-        p = -Q[:,0]
+        # Retrieve vector which is the swimmer frame x-direction. 
+        # The sign of p depends on how your swimmer frame is defined. If the swimmer is oriented in the 
+        # negative x-direction in the swimmer frame, you should multiply p with -1 in post processing, 
+        # to get the actual orientation.
+        # NOTE: p should not be used in the computation itself but only for post-processing as p does
+        # not contain information about the orientation (pitch, roll, yaw)
+        p = Q[:,0]
 
         return x, q, p, Q, phi, u, omega
     
