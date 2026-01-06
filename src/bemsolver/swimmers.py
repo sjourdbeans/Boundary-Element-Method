@@ -604,7 +604,7 @@ class FreeSwimmer(BaseSystem):
 
     def RBM_over_time(self,  
                       dt                 :float,
-                      t_end              :float,
+                      t_end              :float|int,
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0])
@@ -615,7 +615,9 @@ class FreeSwimmer(BaseSystem):
         Parameters
         ----------
         dt                   : float
-                              Time step of the simulation.
+                              Time step of the simulation in seconds.
+        t_end                : float or int
+                              End time of the simulation in seconds.
         flow_function        : Callable
                               A function that takes the current state and returns the boundary conditions (U, W, E), which
                               has as input the current time and the position vector of the swimmer.
@@ -672,9 +674,8 @@ class FreeSwimmer(BaseSystem):
         # Unpack initial state
         x, p = X_0[:3], X_0[3:]
 
-        time_index = 0
         # Calculate the singularity distribution, translational-, and angular velocity for the initial state
-        phi, u, omega = self.calc_RBM(time_index, x, q, self.solution.time[0])
+        phi, u, omega = self.calc_RBM(x, q, self.solution.time[0])
 
         self.solution.psi[0]   = phi[:3*self.N_h]
         self.solution.f1[0]    = phi[3*self.N_h:3*self.N_h + 3*self.N_f1]
@@ -693,7 +694,7 @@ class FreeSwimmer(BaseSystem):
             self.solution.time[frame_index+1] = (frame_index+1) * dt
 
             # Calculate the next timestep
-            x, q, p, Q, phi, u, omega = self.solve_RBM(x, q, frame_index+1, dt)
+            x, q, p, Q, phi, u, omega = self.solve_RBM(x, q, (frame_index+1)*dt, dt)
 
 
             # Save values to solution file
@@ -724,7 +725,7 @@ class FreeSwimmer(BaseSystem):
     def solve_RBM(self,
                   x_initial                :np.ndarray,
                   q_initial                :np.ndarray,
-                  time_index               :int,
+                  time                     :float|int,
                   dt                       :float)->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Given an initial x and p, calculate the next iteration with timestep dt using forward euler numerical integration.
@@ -735,10 +736,10 @@ class FreeSwimmer(BaseSystem):
                       The initial position (x_i)
         q_initial   : numpy array
                       The initial orientation quaternion of the particle (q_i)
-        time_index  : int
-                      The current time index 
+        time        : float or int
+                      The current simulation time in seconds  
         dt          : float
-                      timestep to use for time integration
+                      timestep to use for time integration in seconds
 
         Returns
         -------
@@ -766,12 +767,12 @@ class FreeSwimmer(BaseSystem):
 
         
         # Time integration using forward euler, self.calc_RHS returns the right hand side of the ODE
-        Y_next = forward_euler(self.calc_RHS, Y_0, time_index*dt, dt)       
+        Y_next = forward_euler(self.calc_Y_dot, Y_0, time, dt)       
 
         # Unpack new timestep
         x, q = Y_next[:3], Y_next[3:]
 
-        phi, u, omega = self.calc_RBM(time_index, x, q, time_index*dt)
+        phi, u, omega = self.calc_RBM(x, q, time)
 
         # Convert quaternion vector to cartesian matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
@@ -788,46 +789,18 @@ class FreeSwimmer(BaseSystem):
     
 
 
-    def calc_RHS(self, t:float, Y :np.ndarray)->np.ndarray:
+    def calc_Y_dot(self,  t:float, Y:np.ndarray )->np.ndarray:
         """
         Function that returns the RHS of the ODE to be integrated over time.
-        This function is basically a function that calls self.calc_Y_dot but it is more convenient using this function
-        for time integration. It is possible to skip this function altogether but then Forward_euler needs to be edited.
+        In other words, a function that calculates the time derivative of the current state of the system.
 
         Parameters
-        ----------      
-        t       : float
-                  Current time  
-        Y       : numpy array (1,7)
-                  Array which contains the initial position and quaternion vector (orientation).
-
-        Returns
-        -------
-        Y_dot   : numpy array (1,7)
-                  The array which represents the time derivative at the current timestep (to be integrated).
-
-        """
-        # Find current index based on current time
-        index = int(round(t / self.dt)) % self.N_frames
-
-        # Use the LU decomposition to solve the system
-        Y_dot = self.calc_Y_dot(index, Y, t)
-        
-        return Y_dot
-    
-
-    def calc_Y_dot(self, time_index:int, Y:np.ndarray, t:float)->np.ndarray:
-        """
-        Function that calculates the time derivative of the current state of the system.
-
-        Parameters
-        ---------- 
-        time_index      : int
-                          Current time index (frame)     
+        ----------    
+        t               : float
+                          Current time  in seconds
         Y               : numpy array (1,7)
                           Array which contains the initial position and quaternion vector (orientation).
-        t               : float
-                          Current time  
+        
 
         Returns
         -------
@@ -842,7 +815,7 @@ class FreeSwimmer(BaseSystem):
         q /= np.linalg.norm(q)
 
         # compute RBM of state Y
-        _, u, omega = self.calc_RBM(time_index, x ,q, t)
+        _, u, omega = self.calc_RBM(x ,q, t)
 
         # Transform velocities back to the lab frame
         Q = R.from_quat(q, scalar_first=True).as_matrix()
@@ -859,21 +832,19 @@ class FreeSwimmer(BaseSystem):
         return Y_dot
         
 
-    def calc_RBM(self, time_index, x, q, t)->tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def calc_RBM(self, x, q, t)->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Calculates the RBM of the particle at the current state with the LU decomposition
         of the grand mobility matrix.
 
         Parameters
         ----------
-        time_index      : int
-                          Current time index (frame)  
         x               : numpy array
                           Current x location of the geometrical center of the swimmer
         q               : numpy array
                           Current orientation as a quaternion vector
         t               : float
-                          Current time in the simulation
+                          Current time in the simulation in seconds
         Returns
         -------
         phi     : numpy array (1, N) with N the amount of elements + flagella_1 elements + flagella_2 elements (if present)
