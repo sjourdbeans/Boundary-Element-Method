@@ -461,22 +461,22 @@ class FreeSwimmer(BaseSystem):
         self.piv_vector = np.zeros((self.N_frames, dimension))
 
 
-        # Initialise the solution dataclass
-        self.solution = Solution()
+        # # Initialise the solution dataclass
+        # self.solution = Solution()
         
-        # Pre-allocate the arrays in Solution
-        self.solution.time                  = np.zeros( self.N_frames )
-        self.solution.psi                   = np.zeros((self.N_frames, 3*self.mesh.elements))
-        self.solution.f1                    = np.zeros((self.N_frames, 3*self.N_f1))
-        self.solution.u                     = np.zeros((self.N_frames, 3))
-        self.solution.omega                 = np.zeros((self.N_frames, 3))
-        self.solution.X                     = np.zeros((self.N_frames, 6))
-        self.solution.rotation_matrices     = np.zeros((self.N_frames, 3, 3))
-        self.solution.quaternions           = np.zeros((self.N_frames, 4))
+        # # Pre-allocate the arrays in Solution
+        # self.solution.time                  = np.zeros( self.N_frames )
+        # self.solution.psi                   = np.zeros((self.N_frames, 3*self.mesh.elements))
+        # self.solution.f1                    = np.zeros((self.N_frames, 3*self.N_f1))
+        # self.solution.u                     = np.zeros((self.N_frames, 3))
+        # self.solution.omega                 = np.zeros((self.N_frames, 3))
+        # self.solution.X                     = np.zeros((self.N_frames, 6))
+        # self.solution.rotation_matrices     = np.zeros((self.N_frames, 3, 3))
+        # self.solution.quaternions           = np.zeros((self.N_frames, 4))
 
-        # Only pre-allocate f2 if it is an argument
-        if self.flagellum_2 is not None:
-            self.solution.f2   = np.zeros((self.N_frames, 3*self.N_f2))
+        # # Only pre-allocate f2 if it is an argument
+        # if self.flagellum_2 is not None:
+        #     self.solution.f2   = np.zeros((self.N_frames, 3*self.N_f2))
 
         # Run the __post_init__ of BaseSystem 
         super().__post_init__()
@@ -604,6 +604,7 @@ class FreeSwimmer(BaseSystem):
 
     def RBM_over_time(self,  
                       dt                 :float,
+                      t_end              :float,
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0])
@@ -637,6 +638,24 @@ class FreeSwimmer(BaseSystem):
 
         # Make dt an attribute
         self.dt = dt
+        total_frames = int(t_end // self.dt)
+
+        # Initialise the solution dataclass
+        self.solution = Solution()
+        
+        # Pre-allocate the arrays in Solution
+        self.solution.time                  = np.zeros( total_frames )
+        self.solution.psi                   = np.zeros((total_frames, 3*self.mesh.elements))
+        self.solution.f1                    = np.zeros((total_frames, 3*self.N_f1))
+        self.solution.u                     = np.zeros((total_frames, 3))
+        self.solution.omega                 = np.zeros((total_frames, 3))
+        self.solution.X                     = np.zeros((total_frames, 6))
+        self.solution.rotation_matrices     = np.zeros((total_frames, 3, 3))
+        self.solution.quaternions           = np.zeros((total_frames, 4))
+
+        # Only pre-allocate f2 if it is an argument
+        if self.flagellum_2 is not None:
+            self.solution.f2   = np.zeros((total_frames, 3*self.N_f2))
 
     
         # Set initial quaternion
@@ -668,7 +687,8 @@ class FreeSwimmer(BaseSystem):
         self.solution.omega[0] = Q_0 @ omega
 
         # Loop over all time frames and solve for the system
-        for frame_index in range(self.N_frames-1):
+        for frame_index in range(total_frames-1):
+
             # Update time array
             self.solution.time[frame_index+1] = (frame_index+1) * dt
 
@@ -788,7 +808,7 @@ class FreeSwimmer(BaseSystem):
 
         """
         # Find current index based on current time
-        index = int(t / self.dt)
+        index = int(round(t / self.dt)) % self.N_frames
 
         # Use the LU decomposition to solve the system
         Y_dot = self.calc_Y_dot(index, Y, t)
@@ -863,6 +883,8 @@ class FreeSwimmer(BaseSystem):
         omega   : numpy array (1, 3)
                 : Angular velocity of the particle 
         """
+
+        time_index = int(round(t/self.dt)) % self.N_frames
 
         # Find the current flowfield at x
         U, W, E = self.flow_function(t,x)  

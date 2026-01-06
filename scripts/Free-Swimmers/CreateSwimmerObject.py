@@ -82,7 +82,7 @@ flagellum_2 = []
 N_frames = len(waveformfile["kappasave"])
 
 # loop over all frames to create flagellum objects
-for frame in range(N_frames):
+for frame in range(N_frames-8):
 
     # Set flagellum velocities
     velx_1 = waveformfile["velx0"][frame,0] * lf
@@ -112,6 +112,9 @@ for frame in range(N_frames):
 
 
     tors_1 = np.zeros_like(curv_1)
+    # tors_1[0]=np.pi
+    tors_2 = np.zeros_like(curv_1)
+    # tors_2[0]=-np.pi
 
 
     flag1 = bem.SlenderBody(curv_1,tors_1,
@@ -120,7 +123,7 @@ for frame in range(N_frames):
                            base_position=base_position_1,
                            velocity=vel_1)
     
-    flag2 = bem.SlenderBody(curv_2,tors_1,
+    flag2 = bem.SlenderBody(curv_2,tors_2,
                             theta_0=initial_angle_2,
                             flagellum_length=lf,
                             base_position=base_position_1,
