@@ -899,13 +899,13 @@ class FreeSwimmer(BaseSystem):
         U_field : numpy array
                   The velocity field at the evaluation points.
         """
-
+        time_frame = int(frame_index % self.N_frames)
         # Unpack evaluation point coordinates
         xg, yg, zg = interaction_object.evaluation_points.T
         Ng = np.shape(xg)[0]
 
         # Interaction matrix of flagella 1 with evaluation points
-        K1 = self.flagellum_1[frame_index].calc_interaction(interaction_object.evaluation_points)
+        K1 = self.flagellum_1[time_frame].calc_interaction(interaction_object.evaluation_points)
 
         # Velocity field if only one flagellum is present
         if self.flagellum_2 is None:
@@ -914,7 +914,7 @@ class FreeSwimmer(BaseSystem):
         # Velocity field if two flagella are present
         else:
             # Interaction matrix of flagellum 2 with the evaluation points
-            K2 = self.flagellum_2[frame_index].calc_interaction(interaction_object.evaluation_points)
+            K2 = self.flagellum_2[time_frame].calc_interaction(interaction_object.evaluation_points)
 
             U_field = (interaction_object.MATRIX @ self.solution.psi[frame_index] 
                        + K1 @ self.solution.f1[frame_index] 
