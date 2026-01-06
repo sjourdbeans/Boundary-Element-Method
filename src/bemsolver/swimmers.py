@@ -389,16 +389,14 @@ class FreeSwimmer(BaseSystem):
     ``populate_grand_mobility_matrix()``
         Computes and stores the LU decomposition of the grand mobility matrix for each frame, 
         including force/torque balance constraints for free swimming.
-    ``RBM_over_time(dt, flow_function, initial_position, initial_orientation)``
+    ``RBM_over_time(dt, t_end, flow_function, initial_position, initial_orientation)``
         Integrates the swimmer's motion over time using the provided flow function and initial conditions, 
         returning a `Solution` object with position, orientation, velocities, and singularity distributions.
-    ``solve_RBM(x_initial, p_initial, time_index, dt)``
+    ``solve_RBM(x_initial, p_initial, time, dt)``
         Solves for the next state (position, orientation, etc.) using forward Euler integration.
-    ``calc_RHS(t, Y)``
-        Computes the right-hand side of the ODE for time integration.
-    ``calc_Y_dot(time_index, Y, t)``
+    ``calc_Y_dot(t, Y)``
         Calculates the time derivative of the state vector (position and quaternion).
-    ``calc_RBM(time_index, x, q, t)``
+    ``calc_RBM(x, q, t)``
         Computes the rigid-body motion (velocities and singularities) for a given state.
     ``calc_vector_field(interaction_object, frame_index, find_flow, include_rbm)``
         Computes the velocity field at specified evaluation points for a given frame, optionally 
@@ -433,7 +431,8 @@ class FreeSwimmer(BaseSystem):
     >>> 
     >>> # Run simulation over time
     >>> dt = 1 / 30  # Time step
-    >>> solution = swimmer.RBM_over_time(dt, find_flow, initial_position=np.array([0,0,0]), initial_orientation=np.array([-1,0,0]))
+    >>> t_end = 100*dt
+    >>> solution = swimmer.RBM_over_time(dt, t_end, find_flow, initial_position=np.array([0,0,0]), initial_orientation=np.array([-1,0,0]))
     >>> 
     >>> # Access results, e.g., position and velocity
     >>> positions = solution.X[:, :3]
@@ -459,24 +458,6 @@ class FreeSwimmer(BaseSystem):
         # Initialise matrices to store the LU decomposition matrix and pivot vector
         self.LU_matrix  = np.zeros((self.N_frames, dimension, dimension))
         self.piv_vector = np.zeros((self.N_frames, dimension))
-
-
-        # # Initialise the solution dataclass
-        # self.solution = Solution()
-        
-        # # Pre-allocate the arrays in Solution
-        # self.solution.time                  = np.zeros( self.N_frames )
-        # self.solution.psi                   = np.zeros((self.N_frames, 3*self.mesh.elements))
-        # self.solution.f1                    = np.zeros((self.N_frames, 3*self.N_f1))
-        # self.solution.u                     = np.zeros((self.N_frames, 3))
-        # self.solution.omega                 = np.zeros((self.N_frames, 3))
-        # self.solution.X                     = np.zeros((self.N_frames, 6))
-        # self.solution.rotation_matrices     = np.zeros((self.N_frames, 3, 3))
-        # self.solution.quaternions           = np.zeros((self.N_frames, 4))
-
-        # # Only pre-allocate f2 if it is an argument
-        # if self.flagellum_2 is not None:
-        #     self.solution.f2   = np.zeros((self.N_frames, 3*self.N_f2))
 
         # Run the __post_init__ of BaseSystem 
         super().__post_init__()
