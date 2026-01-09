@@ -621,7 +621,8 @@ class FreeSwimmer(BaseSystem):
 
         # Make dt an attribute
         self.dt = dt
-        total_frames = int(t_end // self.dt)
+        total_frames = int(round(t_end / self.dt))
+        # print(t_end // self.dt) 
 
         # Initialise the solution dataclass
         self.solution = Solution()
@@ -670,6 +671,8 @@ class FreeSwimmer(BaseSystem):
 
         # Loop over all time frames and solve for the system
         for frame_index in range(total_frames-1):
+            if frame_index%100 == 0:
+                print(f"Computing frame {frame_index} out of {total_frames}")
 
             # Update time array
             self.solution.time[frame_index+1] = (frame_index+1) * dt
