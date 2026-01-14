@@ -1,5 +1,5 @@
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .mesh import Mesh
 from .utils import find_panel_data, U_colloc, skew_stack
@@ -40,7 +40,9 @@ class BaseSystem:
     """
 
 
-    mesh:Mesh
+    mesh                :Mesh
+    viscosity           :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
+
 
     def __post_init__(self):
         self.AmountofPanelsBeforePrinting=10
@@ -88,7 +90,7 @@ class BaseSystem:
         if self.UseSecondKindIntEquation:
             MATRIX= 0.5*np.eye(3*N) + MATRIX
         
-        self.MATRIX          = MATRIX
+        self.MATRIX          = (1/self.viscosity) * MATRIX
         self.surface_matrix  = surface_matrix
         self.torque_matrix   = torque_matrix
         self.r_cross_matrix  = skew_stack(self.evaluation_points)    
