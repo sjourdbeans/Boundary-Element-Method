@@ -588,7 +588,8 @@ class FreeSwimmer(BaseSystem):
                       t_end              :float|int,
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
-                      initial_orientation:np.ndarray = np.array([0, 0, 0])
+                      initial_orientation:np.ndarray = np.array([0, 0, 0]),
+                      gravity_direction  :np.ndarray = np.array([0,0,-1])
                       ) -> Solution:
         """
         Solve the mobility problem over time given a function that provides the boundary conditions.
@@ -606,7 +607,8 @@ class FreeSwimmer(BaseSystem):
                               Initial position of the swimmer in cartesian coordinates (standard set to origin)
         initial_orientation  : numpy array
                               Initial pitch, yaw, and roll of the swimmer in radians
-
+        gravity_direction    : numpy array
+                              Direction of gravity in the lab frame (standard set to -z)
         Returns
         -------
         solution          : Solution
@@ -618,6 +620,9 @@ class FreeSwimmer(BaseSystem):
 
         # Make the function that finds the flow an attribute of FreeSwimmer
         self.flow_function = flow_function
+
+        # set gravity vector in lab frame
+        self.gravity = 9.8 * gravity_direction / np.linalg.norm(gravity_direction)
 
         # Make dt an attribute
         self.dt = dt
@@ -859,11 +864,19 @@ class FreeSwimmer(BaseSystem):
             rhs_f2 = self.flagellum_2[time_index].set_boundary_condition(U_body, W_body, E_body)
             rhs = np.concatenate([rhs_h, rhs_f1, rhs_f2])
 
-        
-        RHS = np.hstack((rhs, np.zeros(6)))
+
+        V = self.mesh.parameters["volume"] * 1e-18 # Convert to m^3
+
+        # Calculate gravitational force in body frame
+        F_gravity = V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
+        # print(F_gravity)
+        T_gravity = -  V *  (self.mesh.parameters["medium_rho"] 
+                                      + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
+        # T_gravity = np.cross(np.array([self.mesh.parameters["COM_offset"]*1000 , 0, 0]), F_gravity)  #Convert to pNum (10^-6 term)
+        RHS = np.hstack((-rhs, F_gravity, T_gravity))
 
         # No slip, so solve for negative RHS
-        sol = lu_solve((self.LU_matrix[time_index], self.piv_vector[time_index]), -RHS)
+        sol = lu_solve((self.LU_matrix[time_index], self.piv_vector[time_index]), RHS)
         
         # Unpack solution
         phi   = sol[:-6]
