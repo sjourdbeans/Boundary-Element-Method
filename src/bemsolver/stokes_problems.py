@@ -137,14 +137,16 @@ class MobilityProblem(BaseSystem):
                           The mesh to be used is a bemsolver.Mesh python object.
     flow_function       : Callable representing the flowfield.
                           flow_function should be a function which returns U, W, and E for a given position x
-
     initial_position    : (optional) numpy array
                           Initial position of the particle [x, y, z]
     initial_orientation : (optional) numpy array default is [0, 0, 0]
                           Initial orientation unit vector of the particle [p_x, p_y, p_z] default is [1, 0, 0]
+    viscosity           : (optional) float default is 1e-3
+                          Viscosity of the surrounding fluid in Pa.s (default is water at room temperature)
     particle_velocity   : (optional) float or integer default is 0
                           If the particle has a constant velocity in the direction of its orientation,
                           this can be set. Overall unnecessary if the particle will be self propelled.
+    
                           
 
     Example
@@ -196,7 +198,10 @@ class MobilityProblem(BaseSystem):
 
     initial_position    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))  
     initial_orientation :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))
+    viscosity           :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
     particle_velocity   :float|int = field(default_factory=lambda: 0)
+    
+
 
 
 
@@ -220,10 +225,13 @@ class MobilityProblem(BaseSystem):
         # force and torque free constraints
         F = self.surface_matrix
         T = self.torque_matrix
+        
+        # Mobility matrix 
+        Mh = (1/self.viscosity) * self.MATRIX
 
         # Grand mobility matrix
         M=np.block([
-            [self.MATRIX, -V, -A],
+            [Mh,         -V, -A],
             [F, np.zeros((3,6))],
             [T, np.zeros((3,6))]
         ])

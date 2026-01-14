@@ -41,7 +41,6 @@ class BaseSystem:
 
 
     mesh                :Mesh
-    viscosity           :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
 
 
     def __post_init__(self):
@@ -90,7 +89,7 @@ class BaseSystem:
         if self.UseSecondKindIntEquation:
             MATRIX= 0.5*np.eye(3*N) + MATRIX
         
-        self.MATRIX          = (1/self.viscosity) * MATRIX
+        self.MATRIX          =  MATRIX
         self.surface_matrix  = surface_matrix
         self.torque_matrix   = torque_matrix
         self.r_cross_matrix  = skew_stack(self.evaluation_points)    
