@@ -380,6 +380,8 @@ class FreeSwimmer(BaseSystem):
     flagellum_2 : Iterable[SlenderBody], optional
         An iterable of `SlenderBody` objects representing the second flagellum across multiple frames. 
         Defaults to None if only one flagellum is present.
+    viscosity : float
+        Viscosity of the surrounding fluid in Pa.s (default is water at room temperature 1e-3).
 
     Methods
     -------
@@ -432,7 +434,7 @@ class FreeSwimmer(BaseSystem):
     >>> # Run simulation over time
     >>> dt = 1 / 30  # Time step
     >>> t_end = 100*dt
-    >>> solution = swimmer.RBM_over_time(dt, t_end, find_flow, initial_position=np.array([0,0,0]), initial_orientation=np.array([-1,0,0]))
+    >>> solution = swimmer.RBM_over_time(dt, t_end, find_flow, initial_position=np.array([0,0,0]), initial_orientation=np.array([0, 0, 0]))
     >>> 
     >>> # Access results, e.g., position and velocity
     >>> positions = solution.X[:, :3]
@@ -442,6 +444,9 @@ class FreeSwimmer(BaseSystem):
     flagellum_1     : Iterable[SlenderBody]
 
     flagellum_2     : Iterable[SlenderBody]     = field(default_factory=lambda: None)
+
+    viscosity       :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
+
 
 
 
@@ -474,7 +479,7 @@ class FreeSwimmer(BaseSystem):
         """
 
         # Calculate mobility matrix of the cell body
-        Mh,_,_,_  = self.construct_mobility_matrix()   
+        Mh,_,_,_  = (1/self.viscosity) * self.construct_mobility_matrix()   
         r, c      = np.shape(Mh)     
 
 
@@ -483,12 +488,12 @@ class FreeSwimmer(BaseSystem):
             for i, frame in enumerate(self.flagellum_1):
                 
                 # Interaction matrix of the flagellum acting on the head (cell body) 
-                Mf1h = frame.calc_interaction(self.mesh.centroids)
+                Mf1h = (1/self.viscosity) * frame.calc_interaction(self.mesh.centroids)
 
                 # Interaction matrix of the cell body acting on the flagellum
-                Mhf1 = FlowStokes(self.mesh, frame.r).MATRIX
+                Mhf1 = (1/self.viscosity) * FlowStokes(self.mesh, frame.r).MATRIX
                 # Mobility matrix of the flagellum
-                Mf1  = frame.construct_mobility_matrix()
+                Mf1  = (1/self.viscosity) * frame.construct_mobility_matrix()
                 
                 # Rigid Body Motion (RBM) terms: U_rbm = U + omega x r = V @ U + A @ omega
                 # NOTE: the velocity of the fluid on the surface due to RBM is opposite in direction (v_rbm=-u_rbm)
@@ -526,24 +531,24 @@ class FreeSwimmer(BaseSystem):
 
                 #============Cell Body==============
                 # Interaction matrices of the flagella acting on the cell body
-                Mf1h = frame_1.calc_interaction(self.mesh.centroids)
-                Mf2h = frame_2.calc_interaction(self.mesh.centroids)
+                Mf1h = (1/self.viscosity) * frame_1.calc_interaction(self.mesh.centroids)
+                Mf2h = (1/self.viscosity) * frame_2.calc_interaction(self.mesh.centroids)
 
                 #==========Flagellum 1==============
                 # Interaction matrix of the cell body acting on flagellum 1, 
-                Mhf1 = FlowStokes(self.mesh, frame_1.r).MATRIX
+                Mhf1 = (1/self.viscosity) * FlowStokes(self.mesh, frame_1.r).MATRIX
                 # Mobility matrix of flagellum 1 
-                Mf1  = frame_1.construct_mobility_matrix()
+                Mf1  = (1/self.viscosity) * frame_1.construct_mobility_matrix()
                 # Interaction matrix of flagellum 2 acting on flagellum 1
-                Mf2f1 = frame_2.calc_interaction(frame_1.r)
+                Mf2f1 = (1/self.viscosity) * frame_2.calc_interaction(frame_1.r)
 
                 #==========Flagellum 2==============
                 # Interaction matrix of the cell body acting on flagellum 2
-                Mhf2 = FlowStokes(self.mesh, frame_2.r).MATRIX  
+                Mhf2 = (1/self.viscosity) * FlowStokes(self.mesh, frame_2.r).MATRIX  
                 # Interaction matrix of flagellum 1 acting on flagellum 2              
-                Mf1f2 = frame_1.calc_interaction(frame_2.r)
+                Mf1f2 = (1/self.viscosity) * frame_1.calc_interaction(frame_2.r)
                 # Mobility matrix of flagellum 2
-                Mf2  = frame_2.construct_mobility_matrix()
+                Mf2  = (1/self.viscosity) * frame_2.construct_mobility_matrix()
                 
                 # Rigid Body Motion (RBM) terms: U_rbm = U + omega x r = V @ U + A @ omega
                 # NOTE: the velocity of the fluid on the surface due to RBM is opposite in direction (v_rbm=-u_rbm)
@@ -929,7 +934,7 @@ class FreeSwimmer(BaseSystem):
             # Interaction matrix of flagellum 2 with the evaluation points
             K2 = self.flagellum_2[time_frame].calc_interaction(interaction_object.evaluation_points)
 
-            U_field = (interaction_object.MATRIX @ self.solution.psi[frame_index] 
+            U_field = (1/self.viscosity) * (interaction_object.MATRIX @ self.solution.psi[frame_index] 
                        + K1 @ self.solution.f1[frame_index] 
                        + K2 @ self.solution.f2[frame_index]) 
 
