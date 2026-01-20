@@ -74,7 +74,7 @@ def U_colloc(U          :np.ndarray,
     U : np.ndarray, shape (3,)
         Translational velocity of external flow [micron/s].
     W : np.ndarray, shape (3,)
-        Rotational velocity of external flow [rad/s].
+        Vorticity of external flow [rad/s].
     centroid : np.ndarray, shape (r, 3)
         XYZ coordinates of centroids of cell mesh [micron].
     r : int
@@ -93,6 +93,9 @@ def U_colloc(U          :np.ndarray,
     """
      # Translational velocity: just repeat U for each collocation point
     U_t = np.tile(U, r)
+
+    # # Rotational velocity: half the vorticity
+    W=W/2
 
     # Rotational velocity: cross product W x centroid
     U_r = np.zeros(3*r)
