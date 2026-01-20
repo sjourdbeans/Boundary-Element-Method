@@ -37,7 +37,7 @@ def find_flow(t,x):
 
     W[0] = 0
     W[1] = 0
-    W[2] = -gamma_dot/2
+    W[2] = -gamma_dot
 
     # Rate of strain tensor
     E = gamma_dot/2*np.array([[0,1,0],
@@ -57,13 +57,13 @@ mesh=bem.Mesh(path)
 initial_orientation = np.array([1,0,0])
 initial_position    = np.array([0,0,0])
 
-sys=bem.MobilityProblem(mesh,flow_function=find_flow,
-                        initial_position=initial_position,
-                        initial_orientation=initial_orientation)
+sys=bem.MobilityProblem(mesh)
 dt=0.01
 T=100
 
-solution = sys.RBM_over_time(T,dt) 
+solution = sys.RBM_over_time(T,dt,flow_function=find_flow,
+                        initial_position=initial_position,
+                        initial_orientation=initial_orientation) 
 
 Nx=200 + 1
 Ny=200 + 1
@@ -128,7 +128,7 @@ for i, iter in enumerate(time_indices):
     psi, u, omega = solution.psi[iter], solution.u[iter], solution.omega[iter]
 
     U_total =(U - u)
-    W_total =(W - omega)
+    W_total =(W - 2*omega)
 
     U_body, W_body, E_body = rotate_BCs(Q, U_total,W_total, E)
     

@@ -196,8 +196,6 @@ class MobilityProblem(BaseSystem):
     """
     
 
-    initial_position    :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))  
-    initial_orientation :np.ndarray = field(default_factory=lambda: np.array([0,0,0]))
     viscosity           :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
     particle_velocity   :float|int = field(default_factory=lambda: 0)
     
@@ -464,7 +462,7 @@ class MobilityProblem(BaseSystem):
 
         Returns
         -------
-        psi     : numpy array (1, N) with N the amount of elements
+        psi     : numpy array (1, N) with N tself.mesh.parameters["medium_rho"]he amount of elements
                   The solution for the singularity distribution density.
         u       : numpy array (1, 3)
                   Translational velocity of the particle
@@ -488,9 +486,10 @@ class MobilityProblem(BaseSystem):
 
         # Calculate gravitational force in body frame
         F_gravity =  V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
-        print(Q @F_gravity)
+        # print(np.shape(Q.T@np.cross(Q[:,0], self.gravity)))
         T_gravity = -  V *  (self.mesh.parameters["medium_rho"] 
-                                      + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
+                                      + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) *  Q.T @np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
+        # print(-  V *  (self.mesh.parameters["medium_rho"]  + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) )
         # T_gravity = np.cross(np.array([self.mesh.parameters["COM_offset"]*1000 , 0, 0]), F_gravity)  #Convert to pNum (10^-6 term)
         RHS = np.hstack((-U_rhs, F_gravity, T_gravity))
         
