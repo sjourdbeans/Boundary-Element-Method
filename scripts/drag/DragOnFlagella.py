@@ -65,7 +65,7 @@ W = np.zeros(3)
 
 W[0] = 0
 W[1] = 0
-W[2] = -gamma_dot/2
+W[2] = -gamma_dot
 
 # Rate of strain tensor
 E = gamma_dot/2*np.array([[0,1,0],
