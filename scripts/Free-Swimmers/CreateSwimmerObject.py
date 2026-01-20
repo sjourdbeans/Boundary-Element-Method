@@ -37,16 +37,20 @@ chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-
 cell = waveformfile["Cell"]
 thetar = cell["thetar"].item()[0][0]
 thetal = cell["thetal"].item()[0][0]
+# print(thetal)
+
 phi_body = cell["phi_body"].item()[0][0]
+# print(phi_body)
 
-
-xbase =  cell["dist_base"].item()[0][0]
+xbase =4#  cell["dist_base"].item()[0][0]
+# print(xbase)
 ybase = 0
 zbase = 0
 
 
 
-lf = waveformfile["lf0"][0,0]
+# lf = waveformfile["lf0"][0,0]
+lf = 12
 fps = waveformfile["fps"][0]
 dt = 1 /fps
 
@@ -81,34 +85,70 @@ flagellum_2 = []
 
 N_frames = len(waveformfile["kappasave"])
 
-# loop over all frames to create flagellum objects
-for frame in range(N_frames-8):
+Rotmat = lambda angle: np.array([[1, 0, 0],
+                                 [ 0, np.cos(angle), -np.sin(angle)],
+                                 [0, np.sin(angle), np.cos(angle)]])
 
+# loop over all frames to create flagellum objects
+for frame in range(N_frames-8)[::4]:
+    # frame=15
     # Set flagellum velocities
+    # velx_1 = waveformfile["velx0"][frame,0] * lf
+    # vely_1 = waveformfile["vely0"][frame,0] * lf
+    # velz_1 = np.zeros_like(vely_1) * lf
+
+    # vel_1 = np.vstack([velx_1, vely_1, velz_1]).T #* mu
+
+    # vels_1=np.zeros_like(vel_1)
+
+    # velx_2 = waveformfile["velx0"][frame,1] * lf
+    # vely_2 = -waveformfile["vely0"][frame,1] * lf
+    # velz_2 = np.zeros_like(vely_1) * lf
+
+    # vel_2 = np.vstack([velx_2, vely_2, velz_2]).T #* mu
+    # vels_2 =np.zeros_like(vel_2)
+    # # set flagellum shapes and positions
+    # base_position_1 = np.array([xbase , ybase, zbase]) 
+    # curv_1 = waveformfile["kappasave"][frame,0,1:] 
+    # theta_0_1 = waveformfile["kappasave"][frame,0,0]
+
+    # base_position_2 = base_position_1 
+    # curv_2 = -waveformfile["kappasave"][frame,1,1:] 
+    # theta_0_2 = waveformfile["kappasave"][frame,1,0]
+
+    # initial_angle_1 =  - (thetal - phi_body) + theta_0_1
+    # initial_angle_2 =  - (thetar - phi_body) - theta_0_2
+
+    #=======Symmetric flagella=========
+
+
     velx_1 = waveformfile["velx0"][frame,0] * lf
     vely_1 = waveformfile["vely0"][frame,0] * lf
     velz_1 = np.zeros_like(vely_1) * lf
 
     vel_1 = np.vstack([velx_1, vely_1, velz_1]).T #* mu
 
+    vels_1=np.zeros_like(vel_1)
 
-    velx_2 = waveformfile["velx0"][frame,1] * lf
-    vely_2 = -waveformfile["vely0"][frame,1] * lf
+    velx_2 = velx_1
+    vely_2 = -vely_1
     velz_2 = np.zeros_like(vely_1) * lf
 
     vel_2 = np.vstack([velx_2, vely_2, velz_2]).T #* mu
-
+    vels_2 =np.zeros_like(vel_2)
     # set flagellum shapes and positions
     base_position_1 = np.array([xbase , ybase, zbase]) 
     curv_1 = waveformfile["kappasave"][frame,0,1:] 
     theta_0_1 = waveformfile["kappasave"][frame,0,0]
 
     base_position_2 = base_position_1 
-    curv_2 = -waveformfile["kappasave"][frame,1,1:] 
-    theta_0_2 = waveformfile["kappasave"][frame,1,0]
+    curv_2 = -curv_1
+    # theta_0_2 = waveformfile["kappasave"][frame,1,0]
 
     initial_angle_1 =  - (thetal - phi_body) + theta_0_1
-    initial_angle_2 =  - (thetar - phi_body) - theta_0_2
+    initial_angle_2 = - initial_angle_1
+    # initial_angle_2 =  - (thetal - phi_body) - theta_0_1
+    #==================================
 
 
     tors_1 = np.zeros_like(curv_1)
@@ -116,18 +156,31 @@ for frame in range(N_frames-8):
     tors_2 = np.zeros_like(curv_1)
     # tors_2[0]=-np.pi
 
+    vel_1 = (Rotmat(np.pi/2) @ vel_1.T).T
+    vel_2 = (Rotmat(np.pi/2) @ vel_2.T).T
+
 
     flag1 = bem.SlenderBody(curv_1,tors_1,
                            theta_0=initial_angle_1,
                            flagellum_length=lf,
                            base_position=base_position_1,
-                           velocity=vel_1)
+                           velocity=vel_1,
+                           flagellum_radius=0.1)
     
-    flag2 = bem.SlenderBody(curv_2,tors_2,
+    flag2 = bem.SlenderBody(curv_2, tors_2,
                             theta_0=initial_angle_2,
                             flagellum_length=lf,
                             base_position=base_position_1,
-                            velocity=vel_2)
+                            velocity=vel_2,
+                            flagellum_radius=0.1)
+    
+    flag1.r = (Rotmat(np.pi/2) @ flag1.r.T ).T
+    flag1.tangents = (Rotmat(np.pi/2) @flag1.tangents.T ).T
+    
+
+    flag2.r = (Rotmat(np.pi/2) @ flag2.r.T).T
+    flag2.tangents = (Rotmat(np.pi/2) @ flag2.tangents.T).T
+
     flagellum_1.append(flag1)
     flagellum_2.append(flag2)
 
@@ -142,7 +195,7 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_object.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_flag_rotated.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
 
