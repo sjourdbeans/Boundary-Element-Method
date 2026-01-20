@@ -37,8 +37,8 @@ class Mesh:
             self.panels         =self.meshfile["panels"]  # Shape of panels is (M x 3 x N)
                                                       # with M being amount of vertices+1 and N the amount of elements
                                                       # To select the first panel use self.panels[:,:,0]
-            self.a=self.meshfile.get("a",None)            # Major axis of ellipsoid
-            self.b=self.meshfile.get("b",None) 
+            self.a=self.meshfile.get("a",None)[0][0]            # Major axis of ellipsoid
+            self.b=self.meshfile.get("b",None) [0][0]
 
             self.elements   =np.shape(self.panels)[2]
 
