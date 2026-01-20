@@ -427,13 +427,14 @@ class SlenderBody:
         ----------
         X_center            : numpy array (3,)
                              Reference point for the torque, e.g. center of the cell body.
+                             
         Returns
         -------
         r_cross_matrix      : numpy array (3M, 3)
                              The matrix representing the cross product of r with an arbitrary vector.
         """
 
-        R = self.r - X_center  # position vectors from center points to flagellum elements
+        R = np.copy(self.r) - X_center  # position vectors from center points to flagellum elements
         
         # Calculate r cross matrix at the center points
         r_cross_matrix = skew_stack(R)    
