@@ -479,7 +479,8 @@ class FreeSwimmer(BaseSystem):
         """
 
         # Calculate mobility matrix of the cell body
-        Mh,_,_,_  = (1/self.viscosity) * self.construct_mobility_matrix()   
+        Mh,_,_,_  =  self.construct_mobility_matrix()
+        Mh = (1/self.viscosity) * Mh   
         r, c      = np.shape(Mh)     
 
 
