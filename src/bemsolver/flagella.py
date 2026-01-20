@@ -6,6 +6,7 @@ from scipy.linalg import lu_factor, lu_solve
 from .utils import U_colloc, skew_stack
 from .kernels import stokeslet, tangential
 
+
 @dataclass  
 class SlenderBody:
     """
@@ -66,161 +67,8 @@ class SlenderBody:
 
     
     """
-
-    curvature           : np.ndarray[float|int]
-    torsion             : np.ndarray[float|int]
-    theta_0             : int|float  
-
-    
-    rho_0               : int|float             = field(default_factory=lambda: 0)
-    base_position       : np.ndarray[float|int] = field(default_factory=lambda: np.array([0, 0, 0]))
-    flagellum_length    : int|float             = field(default_factory=lambda: 10)
-    flagellum_radius    : int|float             = field(default_factory=lambda: 0.2) 
-    smin                : int|float             = field(default_factory=lambda: 0.15)
-    velocity            : np.ndarray            = field(default_factory=lambda: None)
-
-
-    def __post_init__(self):
-        if len(self.curvature)!= len(self.torsion):
-            raise IndexError(f"Curvatures and torsion must have the same length ({len(self.curvature)} != {len(self.torsion)})")
-
-        if self.velocity is None:
-            self.velocity = np.zeros((len(self.curvature),3))
-
-        self.curvature       = self.curvature.copy()/self.flagellum_length
-
-        Nf                   = len(self.curvature) - 1
-        self.ssold           = np.linspace(0,self.flagellum_length, Nf+1)
-        self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
-
-        self.velocity        = self.velocity[self.indstart + 1 :]
-
-        self.ds              = self.ssold[1]-self.ssold[0]
-
-        self.ss              = self.ssold[self.indstart:]
-        self.Nf              = len(self.ss) -1
-
-        self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
-        self.element_lengths =  self.ss[1:] - self.ss[:-1]
-        
-        self.slenderness = self.flagellum_radius / self.flagellum_length
-
-        self.r_epsilon = 2 * self.slenderness * np.sqrt(self.flag_centroids*(self.flagellum_length - self.flag_centroids))
-
-        # slend_2 might be flaggellum specific
-        # self.slend_2 = self.flagellum_radius**2/(4*(self.flagellum_length - self.flag_centroids)*self.flag_centroids)
-        # self.slend_2 = self.slenderness**2/(4*(1 - self.flag_centroids/self.flagellum_length)*self.flag_centroids/self.flagellum_length)
-        # self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
-        self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
-        # Frenet-Serret setup
-        self.tangents = np.zeros((len(self.ssold), 3))
-        self.r        = np.zeros((len(self.ssold), 3))
-        self.r[0]     = self.base_position
-        
-        # Initial tangent vector
-
-        self.T_0 = np.array([np.cos(self.theta_0) * np.cos(self.rho_0), 
-                             np.sin(self.theta_0) * np.cos(self.rho_0),
-                             np.sin(self.rho_0)])
-        
-        # self.T_0 = np.array([
-        #     -self.c/np.sqrt(self.R**2 + self.c**2),
-        #     self.R/np.sqrt(self.R**2 + self.c**2),
-        #     0.0
-        # ])
-
-        # self.N_0 = np.array([-1.0, 0.0, 0.0])
-        # self.B_0 = np.array([ 0.0, 0.0, 1.0])
-        
-        self.tangents[0] = self.T_0
-        
-        # Initial normal vector
-        # ref = np.array([0.0, 0.0, 1.0])        # z-axis by default
-
-        # if np.abs(np.dot(ref, self.T_0)) > 0.9:
-        #     ref = np.array([0.0, 1.0, 0.0]) 
-        # self.N_0 = np.cross(self.T_0, ref)   
-
-
-        self.B_0 = np.array([-np.cos(self.theta_0) * np.sin(self.rho_0), 
-                             -np.sin(self.theta_0) * np.sin(self.rho_0),
-                              np.cos(self.rho_0)])
-        
-        # self.N_0 = np.array([-np.sin(self.theta_0),np.cos(self.theta_0),0])
-        self.N_0 = np.cross(self.B_0,self.T_0)
-        
-        # Initial binormal vector
-        # self.B_0 = np.cross(self.T_0, self.N_0)
-
-        self.calc_curve()
-        
-        self.r        = self.r[self.indstart+1:]
-        self.tangents = self.tangents[self.indstart+1:]
-
-        
-
-
-
-    
-
-    def calc_curve(self):
-        """
-        Calculate the curve geometry based on the curvature and torsion arrays using the Frenet-Serret equations.
-        Given an initial tangent, normal, and binormal vector, integrate the Frenet-Serret equations using
-        a Runge-Kutta 4 scheme.
-
-        """
-        # Define the state vector with the current position, tangent, normal, and binormal.
-        Y = np.concatenate([self.base_position, self.T_0, self.N_0, self.B_0])
-
-        # Loop over all nodes (NOT ELEMENTS) and determine the cartesian coordinates of the nodes
-        for i in range(1,len(self.ssold)):
-
-            def rhs(y,s):
-                """
-                Calculate the right hand side of the Frenet-Serret ODEs
-                """
-                r = y[0:3]
-                T = y[3:6]          
-                N = y[6:9]
-                B = y[9:12]
-
-                # Make a linear interpolation of the curvature at a location s between the two nodes. 
-                alpha = (s-self.ssold[i-1])/(self.ssold[i]-self.ssold[i-1])
-                
-                kappa_i = self.curvature[i-1] + alpha * (self.curvature[i] - self.curvature[i-1]) 
-                tau_i   = self.torsion[i-1] + alpha * (self.torsion[i] - self.torsion[i-1]) 
-
-                # Frenet-Serret eqs
-                dr =  T
-                dT =  kappa_i*N
-                dN = -kappa_i*T + tau_i*B
-                dB = -tau_i*N
-
-                return np.concatenate([dr, dT, dN, dB])
-            
-            # Integrate system to find the next state
-            Y = _rk4_step(rhs,Y,self.ssold[i-1],self.ds)
-
-            # Unpack state
-            T_next = Y[3:6]
-            N_next = Y[6:9]
-            B_next = Y[9:12]
-
-            # Make sure the Frenet basis remains orthogonal
-            T_next = T_next / np.linalg.norm(T_next)
-            N_next = N_next - np.dot(N_next, T_next) * T_next
-            N_next = N_next / np.linalg.norm(N_next)
-            B_next = np.cross(T_next, N_next)
-
-            # Pack state
-            Y[3:6]  = T_next
-            Y[6:9]  = N_next
-            Y[9:12] = B_next
-
-            # Store the coordinates and tangents in attributes
-            self.r[i]        = Y[:3]
-            self.tangents[i] = T_next   
+       
+ 
 
 
     def construct_mobility_matrix(self)->np.ndarray:
@@ -441,7 +289,204 @@ class SlenderBody:
 
         return r_cross_matrix
 
+
+@dataclass
+class SlenderCoordinates(SlenderBody):
+
+    points              :np.ndarray
+
+    velocity            : np.ndarray            = field(default_factory=lambda: None)
+    flagellum_radius    : int|float             = field(default_factory=lambda: 0.2)
+
+
+    def __post_init__(self):
+        if self.velocity is None:
+            self.velocity = np.zeros_like(self.r[1:])
+        
+        Nf = len(self.points)
     
+        self.t = self.points[1:]-self.points[:-1]       
+
+        
+        self.flagellum_length = 20#np.sum(np.linalg.norm(self.t,axis=1))
+
+        self.ss = np.linspace(0, self.flagellum_length, Nf)
+        self.Nf=len(self.ss)-1
+
+
+        self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
+        self.element_lengths =  self.ss[1:] - self.ss[:-1]
+
+        
+        self.tangents  = self.t/np.linalg.norm(self.t, axis=1, keepdims=True)
+
+        self.slenderness = self.flagellum_radius / self.flagellum_length
+
+        self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
+
+        self.r=self.points[1:]
+        self.velocity=self.velocity[1:]
+
+    
+
+
+
+        
+
+@dataclass
+class SlenderCurvTors(SlenderBody):
+
+    curvature           : np.ndarray[float|int]
+    torsion             : np.ndarray[float|int]
+    theta_0             : int|float  
+
+    
+    rho_0               : int|float             = field(default_factory=lambda: 0)
+    base_position       : np.ndarray[float|int] = field(default_factory=lambda: np.array([0, 0, 0]))
+    flagellum_length    : int|float             = field(default_factory=lambda: 10)
+    flagellum_radius    : int|float             = field(default_factory=lambda: 0.2) 
+    smin                : int|float             = field(default_factory=lambda: 0.15)
+    velocity            : np.ndarray            = field(default_factory=lambda: None)
+
+
+    
+
+    def __post_init__(self):
+        if len(self.curvature)!= len(self.torsion):
+            raise IndexError(f"Curvatures and torsion must have the same length ({len(self.curvature)} != {len(self.torsion)})")
+
+        if self.velocity is None:
+            self.velocity = np.zeros((len(self.curvature),3))
+
+        self.curvature       = self.curvature.copy()/self.flagellum_length
+
+        Nf                   = len(self.curvature) - 1
+        self.ssold           = np.linspace(0,self.flagellum_length, Nf+1)
+        self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
+
+        self.velocity        = self.velocity[self.indstart + 1 :]
+
+        self.ds              = self.ssold[1]-self.ssold[0]
+
+        self.ss              = self.ssold[self.indstart:]
+        self.Nf              = len(self.ss) -1
+
+        self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
+        self.element_lengths =  self.ss[1:] - self.ss[:-1]
+        
+        self.slenderness = self.flagellum_radius / self.flagellum_length
+
+        self.r_epsilon = 2 * self.slenderness * np.sqrt(self.flag_centroids*(self.flagellum_length - self.flag_centroids))
+
+        # slend_2 might be flaggellum specific
+        # self.slend_2 = self.flagellum_radius**2/(4*(self.flagellum_length - self.flag_centroids)*self.flag_centroids)
+        # self.slend_2 = self.slenderness**2/(4*(1 - self.flag_centroids/self.flagellum_length)*self.flag_centroids/self.flagellum_length)
+        # self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
+        self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
+        # Frenet-Serret setup
+        self.tangents = np.zeros((len(self.ssold), 3))
+        self.r        = np.zeros((len(self.ssold), 3))
+        self.r[0]     = self.base_position
+        
+        # Initial tangent vector
+
+        self.T_0 = np.array([np.cos(self.theta_0) * np.cos(self.rho_0), 
+                             np.sin(self.theta_0) * np.cos(self.rho_0),
+                             np.sin(self.rho_0)])
+        
+        # self.T_0 = np.array([
+        #     -self.c/np.sqrt(self.R**2 + self.c**2),
+        #     self.R/np.sqrt(self.R**2 + self.c**2),
+        #     0.0
+        # ])
+
+        # self.N_0 = np.array([-1.0, 0.0, 0.0])
+        # self.B_0 = np.array([ 0.0, 0.0, 1.0])
+        
+        self.tangents[0] = self.T_0
+        
+        # Initial normal vector
+        # ref = np.array([0.0, 0.0, 1.0])        # z-axis by default
+
+        # if np.abs(np.dot(ref, self.T_0)) > 0.9:
+        #     ref = np.array([0.0, 1.0, 0.0]) 
+        # self.N_0 = np.cross(self.T_0, ref)   
+
+
+        self.B_0 = np.array([-np.cos(self.theta_0) * np.sin(self.rho_0), 
+                             -np.sin(self.theta_0) * np.sin(self.rho_0),
+                              np.cos(self.rho_0)])
+        
+        # self.N_0 = np.array([-np.sin(self.theta_0),np.cos(self.theta_0),0])
+        self.N_0 = np.cross(self.B_0,self.T_0)
+        
+        # Initial binormal vector
+        # self.B_0 = np.cross(self.T_0, self.N_0)
+
+        self.calc_curve()
+        
+        self.r        = self.r[self.indstart+1:]
+        self.tangents = self.tangents[self.indstart+1:]
+
+
+    def calc_curve(self):
+        """
+        Calculate the curve geometry based on the curvature and torsion arrays using the Frenet-Serret equations.
+        Given an initial tangent, normal, and binormal vector, integrate the Frenet-Serret equations using
+        a Runge-Kutta 4 scheme.
+
+        """
+        # Define the state vector with the current position, tangent, normal, and binormal.
+        Y = np.concatenate([self.base_position, self.T_0, self.N_0, self.B_0])
+
+        # Loop over all nodes (NOT ELEMENTS) and determine the cartesian coordinates of the nodes
+        for i in range(1,len(self.ssold)):
+
+            def rhs(y,s):
+                """
+                Calculate the right hand side of the Frenet-Serret ODEs
+                """
+                r = y[0:3]
+                T = y[3:6]          
+                N = y[6:9]
+                B = y[9:12]
+
+                # Make a linear interpolation of the curvature at a location s between the two nodes. 
+                alpha = (s-self.ssold[i-1])/(self.ssold[i]-self.ssold[i-1])
+                
+                kappa_i = self.curvature[i-1] + alpha * (self.curvature[i] - self.curvature[i-1]) 
+                tau_i   = self.torsion[i-1] + alpha * (self.torsion[i] - self.torsion[i-1]) 
+
+                # Frenet-Serret eqs
+                dr =  T
+                dT =  kappa_i*N
+                dN = -kappa_i*T + tau_i*B
+                dB = -tau_i*N
+
+                return np.concatenate([dr, dT, dN, dB])
+            
+            # Integrate system to find the next state
+            Y = _rk4_step(rhs,Y,self.ssold[i-1],self.ds)
+
+            # Unpack state
+            T_next = Y[3:6]
+            N_next = Y[6:9]
+            B_next = Y[9:12]
+
+            # Make sure the Frenet basis remains orthogonal
+            T_next = T_next / np.linalg.norm(T_next)
+            N_next = N_next - np.dot(N_next, T_next) * T_next
+            N_next = N_next / np.linalg.norm(N_next)
+            B_next = np.cross(T_next, N_next)
+
+            # Pack state
+            Y[3:6]  = T_next
+            Y[6:9]  = N_next
+            Y[9:12] = B_next
+
+            # Store the coordinates and tangents in attributes
+            self.r[i]        = Y[:3]
+            self.tangents[i] = T_next  
 
 
 def _rk4_step(f: callable, 
