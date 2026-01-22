@@ -66,6 +66,8 @@ y = np.linspace(-ylim, ylim, Ny)
 xg, yg =np.meshgrid(x,y)
 zg=np.zeros_like(xg)
 
+x_stream , y_stream =np.meshgrid(x,y)
+
 xg = xg.ravel()
 yg = yg.ravel()
 zg = zg.ravel()
@@ -83,18 +85,28 @@ psi, force, torque = sys.solve(U,W,E)
 
 U_field =interaction.calc_vector_field(psi, U, W, E) 
 
+Ux = U_field[:, 0].reshape(Ny, Nx)
+Uy = U_field[:, 1].reshape(Ny, Nx)
+Uz = U_field[:, 2].reshape(Ny, Nx)
+
 vmax=1#*np.max(np.linalg.norm(U_field, axis =1))
 # vmax=4
 
-fig = interaction.plot_vector_field(x, y, U_field, vmax= vmax, quiver_density=8)
+fig = interaction.plot_vector_field(x, y, U_field, vmax= vmax, quiver_density=100)
 fig.set_size_inches(10,8)
 ax = fig.axes[0]
 ax.set_title(f"Flowfield With $\\mathbf{{u}}^{{\\infty}}=-\\mathbf{{\\hat{{x}}}}$ $\\mu$s$^{{-1}}$", fontsize=20)
 ax.plot(mesh.isosurface[:,0],-mesh.isosurface[:,1],color='r')
+
+# ========== Uncomment for streamlines ==========
+#ax.streamplot(x_stream, y_stream, Ux, Uy, color='white', density=2, linewidth=0.7, arrowsize=1)
+
+#================================================
+
 # ax.set_title(f"Shear Flow with $\\dot{{\\gamma}}={gamma_dot}$ s$^{{-1}}$", fontsize=20)
 plt.show()
-fig.savefig(f"{plot_path}/Flowfield_sphere_u_x={U[0]}.pdf")
-fig.savefig(f"{plot_image_path}/Flowfield_sphere_u_x={U[0]}.png",dpi=600)
+# fig.savefig(f"{plot_path}/Flowfield_sphere_u_x={U[0]}.pdf")
+# fig.savefig(f"{plot_image_path}/Flowfield_sphere_u_x={U[0]}.png",dpi=600)
 
 # plt.show()
 
