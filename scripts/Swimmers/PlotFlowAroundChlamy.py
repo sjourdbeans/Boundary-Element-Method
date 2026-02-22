@@ -37,7 +37,8 @@ mpl.rcParams["legend.fontsize"]=13
 
 waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/lib02_1_90_2019-06-28_1640.mat")
 chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
-savepath          = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Chlamy/Chlamy_reverse.mp4"
+# chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/pipette/pipette_25_400_300.mat"
+savepath          = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/videos/Chlamy/Chlamy_vorticity_large_domain.mp4"
 
 cell = waveformfile["Cell"]
 thetar = cell["thetar"].item()[0][0]
@@ -45,7 +46,7 @@ thetal = cell["thetal"].item()[0][0]
 phi_body = cell["phi_body"].item()[0][0]
 
 
-xbase = cell["dist_base"].item()[0][0]
+xbase = -5#cell["dist_base"].item()[0][0]
 ybase = 0
 zbase = 0
 
@@ -62,7 +63,7 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
 
     U = np.zeros(3)
 
-    U[0] = -1000 
+    U[0] = 0#-1000 
     U[1] = 0
     U[2] = 0
 
@@ -71,13 +72,17 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
 
     W[0] = 0
     W[1] = 0
-    W[2] = -gamma_dot/2
+    W[2] = -gamma_dot
 
     # Rate of strain tensor
     E = gamma_dot/2*np.array([[0,1,0],
                             [1,0,0],
                             [0,0,0]])
     return U, W, E
+
+mesh = bem.Mesh(chlamy_path)
+# mesh.plot_mesh()
+# plt.show()
 
 
 
@@ -90,20 +95,28 @@ N_frames = len(waveformfile["kappasave"])
 # loop over all frames to create flagellum objects
 for frame in range(N_frames):
 
-    # Set flagellum velocities
-    velx_1 = waveformfile["velx0"][frame,0] * lf
-    vely_1 = waveformfile["vely0"][frame,0] * lf
+    # velx_1 = waveformfile["velx0"][frame,0] * lf
+    # vely_1 = waveformfile["vely0"][frame,0] * lf
+    # velz_1 = np.zeros_like(vely_1) * lf
+
+    velx_1 =- waveformfile["velx0"][frame,0] * lf
+    vely_1 =- waveformfile["vely0"][frame,0] * lf
     velz_1 = np.zeros_like(vely_1) * lf
 
-    vel_1 = np.vstack([velx_1, vely_1, velz_1]).T
+    vel_1 = np.vstack([velx_1, vely_1, velz_1]).T #* mu
 
+    vels_1=np.zeros_like(vel_1)
 
-    velx_2 = waveformfile["velx0"][frame,1] * lf
-    vely_2 = -waveformfile["vely0"][frame,1] * lf
+    # velx_2 = waveformfile["velx0"][frame,1] * lf
+    # vely_2 = -waveformfile["vely0"][frame,1] * lf
+    # velz_2 = np.zeros_like(vely_1) * lf
+
+    velx_2 = -waveformfile["velx0"][frame,1] * lf
+    vely_2 = waveformfile["vely0"][frame,1] * lf
     velz_2 = np.zeros_like(vely_1) * lf
 
-    vel_2 = np.vstack([velx_2, vely_2, velz_2]).T
-
+    vel_2 = np.vstack([velx_2, vely_2, velz_2]).T #* mu
+    vels_2 =np.zeros_like(vel_2)
     # set flagellum shapes and positions
     base_position_1 = np.array([xbase , ybase, zbase]) 
     curv_1 = waveformfile["kappasave"][frame,0,1:] 
@@ -113,29 +126,28 @@ for frame in range(N_frames):
     curv_2 = -waveformfile["kappasave"][frame,1,1:] 
     theta_0_2 = waveformfile["kappasave"][frame,1,0]
 
-    initial_angle_1 = - (thetal - phi_body) + theta_0_1
-    initial_angle_2 = - (thetar - phi_body) - theta_0_2
+    initial_angle_1 = np.pi- (thetal - phi_body) + theta_0_1
+    initial_angle_2 = np.pi- (thetar - phi_body) - theta_0_2
 
 
     tors_1 = np.zeros_like(curv_1)
 
 
-    flag1 = bem.SlenderBody(curv_1,tors_1,
+    flag1 = bem.SlenderCurvTors(curv_1,tors_1,
                            theta_0=initial_angle_1,
                            flagellum_length=lf,
                            base_position=base_position_1,
-                           velocity=vel_1)
+                           velocity=vel_1, smin=0)
     
-    flag2 = bem.SlenderBody(curv_2,tors_1,
+    flag2 = bem.SlenderCurvTors(curv_2,tors_1,
                             theta_0=initial_angle_2,
                             flagellum_length=lf,
                             base_position=base_position_1,
-                            velocity=vel_2)
+                            velocity=vel_2, smin=0)
     flagellum_1.append(flag1)
     flagellum_2.append(flag2)
 
 # ===================Create swimmer object=====================
-mesh = bem.Mesh(chlamy_path)
 
 chlamy = bem.Swimmer(mesh,
                      flagellum_1=flagellum_1,flagellum_2=flagellum_2)
@@ -180,16 +192,20 @@ solution = chlamy.solve(find_flow, dt)
 
 
 
-Nx=200 + 1
-Ny=200 + 1
+Nx=500 + 1
+Ny=500 + 1
 xlim=5
 ylim=5
 
-x = np.linspace(-20, 20, Nx)
-y = np.linspace(-20, 20, Ny)
+x = np.linspace(-60, 60, Nx)
+y = np.linspace(-80,80, Ny)
 
 xg, yg =np.meshgrid(x,y)
 zg=np.zeros_like(xg)
+dx = abs(x[1]-x[0])
+dy = abs(y[1]-y[0])
+
+x_stream , y_stream =np.meshgrid(x,y)
 
 xg = xg.ravel()
 yg = yg.ravel()
@@ -234,6 +250,11 @@ for frame in range(N_frames):
     uy = u_field[:,1].reshape(Ny,Nx)
     uz = u_field[:,2].reshape(Ny,Nx)
 
+    duy_dx = np.gradient(uy, dx, axis=1)
+    dux_dy = np.gradient(ux, dy, axis=0)
+
+    omega_z = duy_dx - dux_dy
+
     insidemask_2d = chlamy.inside_mask.reshape(Ny,Nx)
 
     ux_masked = np.copy(ux)
@@ -275,22 +296,30 @@ for frame in range(N_frames):
     # scale[U_magnitude == 0] = 0
 
     norm = colors.Normalize(vmin=0, vmax=vmax)
-    fig = plt.figure(figsize=(12, 10))
-    c = plt.pcolormesh(x, y, U_magnitude, shading='auto', cmap='viridis',norm=norm)
-    plt.title(f"$u_x = 10^3$ $\\mu \\text{{m/s }}$, $t$={round(frame*dt*10**3,2)} ms")        
+    norm_omega = colors.Normalize(vmin=-4, vmax=4)
+    fig = plt.figure(figsize=(13, 16))
+    # c = plt.pcolormesh(x, y, U_magnitude, shading='auto', cmap='viridis',norm=norm)
+    v =plt.pcolormesh(x, y, omega_z, shading="auto", cmap="RdBu_r", norm=norm_omega)
+
+    # plt.title(f"$u_x = 10^3$ $\\mu \\text{{m/s }}$, $t$={round(frame*dt*10**3,2)} ms") 
+    plt.title(f"$t$={round(frame*dt*10**3,2)} ms")        
 
     plt.plot(r[:,0],r[:,1],color='red')
     plt.plot(r2[:,0],r2[:,1],color='g')
     plt.plot(mesh.isosurface[:,0],mesh.isosurface[:,1],color='r')
    
+    plt.streamplot(x_stream, y_stream, ux, uy, color='black', density=3, linewidth=0.7, arrowsize=1)
 
-    plt.quiver(x_quiver, y_quiver, Ux_quiver, Uy_quiver,
-                color='white', headlength=4, headwidth=2,scale_units='xy',scale=500)
-    plt.colorbar(c,label=r'$|\mathbf{U}_{\text{field}}|$ [$\mu$m/s]')
+    # plt.quiver(x_quiver, y_quiver, Ux_quiver, Uy_quiver,
+    #             color='white', headlength=4, headwidth=2,scale_units='xy',scale=500)
+    # plt.colorbar(c,label=r'$|\mathbf{U}_{\text{field}}|$ [$\mu$m/s]')
+    plt.colorbar(v,label=r"$\omega_z$ [s$^{-1}$]")
     plt.xlabel(f'$x$ [$\\mu$m]')
     plt.ylabel(f'$y$ [$\\mu$m]')
+    plt.ylim(-80,80)
+    plt.xlim(-60,60)
     # plt.title('Flow magnitude and direction')
-    plt.axis('equal')
+    # plt.axis('equal')
     # plt.show()
     frame_path = os.path.join(tmp_dir, f"frame_{frame:04d}.png")
     fig.savefig(frame_path, dpi=150)
