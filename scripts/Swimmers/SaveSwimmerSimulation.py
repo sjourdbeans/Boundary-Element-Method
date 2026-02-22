@@ -104,7 +104,7 @@ for frame in range(N_frames):
     curv_1 = waveformfile["kappasave"][frame,0,1:] 
     theta_0_1 = waveformfile["kappasave"][frame,0,0]
 
-    base_position_2 = -base_position_1 
+    base_position_2 = base_position_1 
     curv_2 = -waveformfile["kappasave"][frame,1,1:] 
     theta_0_2 = waveformfile["kappasave"][frame,1,0]
 
