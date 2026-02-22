@@ -37,8 +37,8 @@ class Mesh:
             self.panels         =self.meshfile["panels"]  # Shape of panels is (M x 3 x N)
                                                       # with M being amount of vertices+1 and N the amount of elements
                                                       # To select the first panel use self.panels[:,:,0]
-            self.a=self.meshfile.get("a",None)[0][0]            # Major axis of ellipsoid
-            self.b=self.meshfile.get("b",None) [0][0]
+            self.a=self.meshfile.get("a",None)            # Major axis of ellipsoid
+            self.b=self.meshfile.get("b",None) 
 
             self.elements   =np.shape(self.panels)[2]
 
@@ -67,6 +67,9 @@ class Mesh:
             warnings.warn(f"Values for a and b are not stored in meshfile, assign them yourself using 'instance_name.a=value'. \n Also assign volume by 'instance_name.parameters[\"volume\"]=value' if needed.",
                         category=UserWarning,
                         stacklevel=3)
+        else:
+            self.a =self.a[0][0]
+            self.b =self.b[0][0]
 
         self.normals,self.centroids=self.load_panels()
 
