@@ -32,7 +32,7 @@ mpl.rcParams["legend.fontsize"]=13
 
 waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/lib02_1_90_2019-06-28_1640.mat")
 chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
-
+# chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/sphere_chlamy_N=320.mat"
 
 movie_data="/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Holographic_microscopy_Chlamy/Movie data/CC125_4_2_T_avg_int.txt"
 movie_data_2="/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Holographic_microscopy_Chlamy/Movie data/CC125_4_2_C_avg_int.txt"
@@ -45,8 +45,8 @@ rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
                  [np.sin(theta), np.cos(theta),0],
                  [0,0,1]])
 
-R = coords.reshape(int(len(coords)/20),20,3)/7 * 20
-R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *20
+R = coords.reshape(int(len(coords)/20),20,3)/7 * 12
+R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *12
 # frame =5
 
 dt=400*10**(-6)
@@ -58,38 +58,19 @@ V2 =(R2[1:]-R2[:-1])/dt
 V2 = np.vstack((V2, (R2[-1]-R2[0]).reshape(1,20,3)/dt))
 
 
-def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
-    # no shear flow
-    gamma_dot=0
-
-    U = np.zeros(3)
-
-    U[0] = 0
-    U[1] = 0
-    U[2] = 0
-
-    # Background vorticity
-    W = np.zeros(3)  
-
-    W[0] = 0
-    W[1] = 0
-    W[2] = -gamma_dot/2
-
-    # Rate of strain tensor
-    E = gamma_dot/2*np.array([[0,1,0],
-                            [1,0,0],
-                            [0,0,0]])
-    return U, W, E
-
-
 
 flagellum_1 = []
 flagellum_2 = []
 
 N_frames = len(R)-1
 
+mesh = bem.Mesh(chlamy_path)
+# mesh.plot_mesh()
+# import matplotlib.pyplot as plt
+# plt.show()
+
 # loop over all frames to create flagellum objects
-for frame in range(N_frames):
+for frame in range(N_frames)[::2]:
     frame = frame % N_frames
 
     R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
@@ -99,18 +80,18 @@ for frame in range(N_frames):
     v= (rotmat @ V[frame].T ).T
     v2=(rotmat @ V2[frame].T).T
 
-    flag1 = bem.SlenderCoordinates(R[frame],v)
+    flag1 = bem.SlenderCoordinates(R[frame],v, flagellum_length=12,flagellum_radius=0.1)
     
-    flag2 = bem.SlenderCoordinates(R2[frame],v2)
+    flag2 = bem.SlenderCoordinates(R2[frame],v2, flagellum_length=12,flagellum_radius=0.1)
 
     flagellum_1.append(flag1)
     flagellum_2.append(flag2)
 
 # ===================Create swimmer object=====================
-mesh = bem.Mesh(chlamy_path)
+
 
 chlamy = bem.FreeSwimmer(mesh,
-                        flagellum_1=flagellum_1,flagellum_2=flagellum_2)
+                        flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
 # =============================================================
 
 
