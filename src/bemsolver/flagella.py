@@ -297,36 +297,53 @@ class SlenderCoordinates(SlenderBody):
 
     velocity            : np.ndarray            = field(default_factory=lambda: None)
     flagellum_radius    : int|float             = field(default_factory=lambda: 0.2)
+    flagellum_length    : int|float             = field(default_factory=lambda: 7)
+    smin                : int|float             = field(default_factory=lambda: 0)
 
 
     def __post_init__(self):
-        if self.velocity is None:
-            self.velocity = np.zeros_like(self.r[1:])
+        
         
         Nf = len(self.points)
     
-        self.t = self.points[1:]-self.points[:-1]       
+                
+        # self.flagellum_length = #np.sum(np.linalg.norm(self.t,axis=1))
 
+        self.ssold = np.linspace(0, self.flagellum_length, Nf)
+        # self.ss = np.linspace(0, self.flagellum_length, Nf)
+
+        self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
         
-        self.flagellum_length = 20#np.sum(np.linalg.norm(self.t,axis=1))
-
-        self.ss = np.linspace(0, self.flagellum_length, Nf)
+        self.ss = self.ssold[self.indstart:]
         self.Nf=len(self.ss)-1
 
 
         self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
         self.element_lengths =  self.ss[1:] - self.ss[:-1]
+        # print(self.element_lengths)
 
-        
-        self.tangents  = self.t/np.linalg.norm(self.t, axis=1, keepdims=True)
 
         self.slenderness = self.flagellum_radius / self.flagellum_length
 
+        #==============cylinder=================
+
+        # self.r_epsilon = 2 * self.slenderness * np.sqrt(self.flag_centroids*(self.flagellum_length - self.flag_centroids))
+
+        # self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
+
+        #========================================
+
         self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
 
-        self.r=self.points[1:]
-        self.velocity=self.velocity[1:]
+        self.r=self.points[self.indstart+1:]
 
+        self.t = np.gradient(self.r, self.element_lengths[0], axis=0)
+        # self.t = self.points[1:]-self.points[:-1]       
+        self.tangents  = self.t/np.linalg.norm(self.t, axis=1, keepdims=True)
+
+        if self.velocity is None:
+            self.velocity = np.zeros_like(self.r[1:])
+        self.velocity=self.velocity[self.indstart+1:]
     
 
 
@@ -338,10 +355,13 @@ class SlenderCurvTors(SlenderBody):
 
     curvature           : np.ndarray[float|int]
     torsion             : np.ndarray[float|int]
-    theta_0             : int|float  
+    # theta_0             : int|float  
 
     
-    rho_0               : int|float             = field(default_factory=lambda: 0)
+    # rho_0               : int|float             = field(default_factory=lambda: 0)
+
+    T_0                 : np.ndarray            = field(default_factory=lambda: np.array([1.0,0,0]))
+    N_0                 : np.ndarray            = field(default_factory=lambda: np.array([0,1.0,0]))
     base_position       : np.ndarray[float|int] = field(default_factory=lambda: np.array([0, 0, 0]))
     flagellum_length    : int|float             = field(default_factory=lambda: 10)
     flagellum_radius    : int|float             = field(default_factory=lambda: 0.2) 
@@ -378,6 +398,8 @@ class SlenderCurvTors(SlenderBody):
 
         self.r_epsilon = 2 * self.slenderness * np.sqrt(self.flag_centroids*(self.flagellum_length - self.flag_centroids))
 
+        self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
+
         # slend_2 might be flaggellum specific
         # self.slend_2 = self.flagellum_radius**2/(4*(self.flagellum_length - self.flag_centroids)*self.flag_centroids)
         # self.slend_2 = self.slenderness**2/(4*(1 - self.flag_centroids/self.flagellum_length)*self.flag_centroids/self.flagellum_length)
@@ -390,9 +412,9 @@ class SlenderCurvTors(SlenderBody):
         
         # Initial tangent vector
 
-        self.T_0 = np.array([np.cos(self.theta_0) * np.cos(self.rho_0), 
-                             np.sin(self.theta_0) * np.cos(self.rho_0),
-                             np.sin(self.rho_0)])
+        # self.T_0 = np.array([np.cos(self.theta_0) * np.cos(self.rho_0), 
+        #                      np.sin(self.theta_0) * np.cos(self.rho_0),
+        #                      np.sin(self.rho_0)])
         
         # self.T_0 = np.array([
         #     -self.c/np.sqrt(self.R**2 + self.c**2),
@@ -413,12 +435,16 @@ class SlenderCurvTors(SlenderBody):
         # self.N_0 = np.cross(self.T_0, ref)   
 
 
-        self.B_0 = np.array([-np.cos(self.theta_0) * np.sin(self.rho_0), 
-                             -np.sin(self.theta_0) * np.sin(self.rho_0),
-                              np.cos(self.rho_0)])
-        
+        # self.B_0 = np.array([-np.cos(self.theta_0) * np.sin(self.rho_0), 
+        #                      -np.sin(self.theta_0) * np.sin(self.rho_0),
+        #                       np.cos(self.rho_0)])
+        # self.N_0 = _normal_from_tangent(self.T_0)
+        # self.N_0 /= np.linalg.norm(self.N_0)
+
+        self.B_0 = np.cross(self.T_0, self.N_0)
+        self.B_0 /= np.linalg.norm(self.B_0)
         # self.N_0 = np.array([-np.sin(self.theta_0),np.cos(self.theta_0),0])
-        self.N_0 = np.cross(self.B_0,self.T_0)
+        # self.N_0 = np.cross(self.B_0,self.T_0)
         
         # Initial binormal vector
         # self.B_0 = np.cross(self.T_0, self.N_0)
@@ -489,6 +515,63 @@ class SlenderCurvTors(SlenderBody):
             self.tangents[i] = T_next  
 
 
+
+
+@dataclass
+class SlenderAngles(SlenderBody):
+    
+
+    theta               : np.ndarray[float|int]
+    phi                 : np.ndarray[float|int]
+
+    base_position       : np.ndarray[float|int] = field(default_factory=lambda: np.array([0, 0, 0]))
+    velocity            : np.ndarray            = field(default_factory=lambda: None)
+    flagellum_radius    : int|float             = field(default_factory=lambda: 0.2)
+    flagellum_length    : int|float             = field(default_factory=lambda: 7)
+
+
+
+    def __post_init__(self):
+        if len(self.theta)!= len(self.phi):
+            raise IndexError(f"In-plane and out-of-plane angles must have the same length ({len(self.theta)} != {len(self.phi)})")
+        
+        
+        Nf = len(self.theta)
+    
+        
+        # self.flagellum_length = #np.sum(np.linalg.norm(self.t,axis=1))
+
+        self.ss = np.linspace(0, self.flagellum_length, Nf)
+        self.Nf=len(self.ss)-1
+
+
+        self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
+        self.element_lengths =  self.ss[1:] - self.ss[:-1]
+
+        # Calculate tangent vectors from theta and phi
+        tx = np.cos(self.theta) * np.cos(self.phi)
+        ty = np.sin(self.theta) * np.cos(self.phi)
+        tz = np.sin(self.phi)
+        
+        self.tangents  = np.column_stack((tx, ty, tz))
+
+        self.slenderness = self.flagellum_radius / self.flagellum_length
+
+        self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
+
+        self.r        = np.zeros((len(self.ss), 3))
+        self.r[0]     = self.base_position
+
+        # Use trapezoidal rule to calculate the coordinates of the curve
+        for i in range(1,len(self.ss)):
+            self.r[i] = self.r[i-1] + 0.5 * (self.tangents[i-1] + self.tangents[i]) * self.element_lengths[i-1]
+        
+
+        if self.velocity is None:
+            self.velocity = np.zeros_like(self.r)
+
+
+
 def _rk4_step(f: callable, 
               y:np.ndarray, 
               s:float|int, 
@@ -516,6 +599,20 @@ def _rk4_step(f: callable,
 
 
 
+def _normal_from_tangent(t0):
+    """
+    Docstring for _normal_from_tangent
+    
+    :param t0: Description
+    """
+    t0 = np.asarray(t0, dtype=float)
+    t0 = t0 / np.linalg.norm(t0)
 
+    # Choose a reference vector not parallel to t0
+    ref = np.array([0.0, 0.0, 1.0])
+    if abs(np.dot(t0, ref)) > 0.9:   # nearly parallel
+        ref = np.array([0.0, 1.0, 0.0])
 
-
+    n0 = np.cross(t0, ref)
+    n0 = n0 / np.linalg.norm(n0)
+    return n0
