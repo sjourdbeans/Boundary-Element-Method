@@ -79,10 +79,12 @@ if __name__ == "__main__":
 
     # a_arr=np.arange(0.1,1,0.05)
     # -------- prolate spheroid elongated along x (uniform mesh) --------
-    a = 0.5   # short radii (y,z)
+    # a = 3.6   # short radii (y,z)
+    a=4
     # for a in a_arr:
-    c = 2  # long radius (x)
-    subdiv = 2  # 20*4^2 = 320 triangles
+    # c = 21  # long radius (x)
+    c= 5
+    subdiv = 3  # 20*4^2 = 320 triangles
 
     buffer_factor =0.2
     delta_x =0.05
@@ -120,7 +122,7 @@ if __name__ == "__main__":
 
     # from scipy.io import savemat 
     # Can be changed to npz file later
-    # savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid/fine-b=0.5/jeffrey_mesh_very_fine_b={round(a,3)}.mat",
-    #             {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
-    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/elongated-mesh-fine/elongated_spheroid_N={t.shape[0]}.mat",
-            {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
+    savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N={t.shape[0]}.mat",
+                {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
+    # savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Euglena/Euglena_Rossi_N={t.shape[0]}.mat",
+    #         {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
