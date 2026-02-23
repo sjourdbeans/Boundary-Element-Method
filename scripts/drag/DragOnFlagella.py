@@ -104,7 +104,7 @@ initial_angle =np.pi/2
 curv_zero = np.zeros(10)
 tors_zero = np.zeros_like(curv_zero)
 
-flag = bem.SlenderBody(curv_zero,tors_zero,theta_0=initial_angle,base_position=base_position, smin=0,rho_0=0)
+flag = bem.SlenderCurvTors(curv_zero,tors_zero,theta_0=initial_angle,base_position=base_position, smin=0,rho_0=0)
 print(flag.r)
 
 M = flag.construct_mobility_matrix()

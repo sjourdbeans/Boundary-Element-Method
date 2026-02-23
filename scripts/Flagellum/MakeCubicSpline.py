@@ -157,7 +157,7 @@ for i, t in enumerate(time):
     curv_test = 2*np.ones(30)
     tors_test = np.zeros_like(curv_test)
 
-    flag2 = bem.SlenderBody(curv_2,tors_2,theta_0=initial_angle_2,flagellum_length=lf,base_position=base_position_2, smin=0,velocity=vel_2)
+    flag2 = bem.SlenderCurvTors(curv_2,tors_2,theta_0=initial_angle_2,flagellum_length=lf,base_position=base_position_2, smin=0,velocity=vel_2)
     
     
 

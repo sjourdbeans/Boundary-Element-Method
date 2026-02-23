@@ -123,21 +123,18 @@ for frame in range(len(waveformfile["kappasave"])):
                             velocity=vel_2)
     
     
-    flag2 = bem.SlenderCoordinates(flag.r,vel_2)
-    # print(flag.element_lengths)
 
-    M = flag2.construct_mobility_matrix()
+    M = flag.construct_mobility_matrix()
 
-    # vel_2_flat = vel_2[flag2.indstart+1:].flatten()
 
-    RHS  = flag2.set_boundary_condition(U,W,E)# + vel_2_flat
+    RHS  = flag.set_boundary_condition(U,W,E)
 
     f = np.linalg.solve(M, -RHS)
 
     fq = f.reshape(int(len(f)/3),3)
 
 
-    K = flag2.calc_interaction(points)
+    K = flag.calc_interaction(points)
     u_field  = K @ f
 
     u_field = u_field.reshape(Ng, 3)
@@ -157,7 +154,7 @@ for frame in range(len(waveformfile["kappasave"])):
     y_quiver = y[::quiver_density]
 
 
-    vmax = 100* flag2.flagellum_length
+    vmax = 100* flag.flagellum_length
 
 
     norm = colors.Normalize(vmin=0, vmax=vmax)
@@ -165,7 +162,7 @@ for frame in range(len(waveformfile["kappasave"])):
     c = plt.pcolormesh(x, y, U_magnitude, shading='auto', cmap='viridis',norm=norm)
     plt.title(f"$t$={frame*dt} s")        
 
-    plt.plot(flag2.r[:,0],flag2.r[:,1],color='red')
+    plt.plot(flag.r[:,0],flag.r[:,1],color='red')
 
     plt.quiver(x_quiver, y_quiver, Ux_quiver, Uy_quiver,
                     color='white', headlength=4, headwidth=2,scale_units='xy')

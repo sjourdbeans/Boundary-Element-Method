@@ -9,7 +9,7 @@ from .mesh import Mesh
 from .stokes_problems import MobilityProblem, ResistanceProblem
 from .flowfield import FlowStokes
 from .SaveData import Solution
-from .flagella import SlenderBody, SlenderCurvTors, SlenderCoordinates, SlenderAngles
+from .flagella import SlenderCurvTors, SlenderCoordinates, SlenderAngles
 from .swimmers import Swimmer, FreeSwimmer
 
 __all__ = [
@@ -18,7 +18,6 @@ __all__ = [
     "ResistanceProblem",
     "FlowStokes",
     "Solution",
-    "SlenderBody",
     "SlenderCurvTors",
     "SlenderCoordinates",
     "SlenderAngles",

@@ -10,61 +10,14 @@ from .kernels import stokeslet, tangential
 @dataclass  
 class SlenderBody:
     """
-    This class calculates the cartesian coordinates of a slender body (commonly used to simulate flagella) 
-    given an array of curvatures and torsions when it is called. The amount of curvatures (and torsions) you pass along
-    determines the amount of nodes on the body. Therefore, if curvature has length N, then the amount of elements on the body is 
-    N-1. The curve is determined using the Frenet-Serret eqs.\n
+    This parent class contains the code to assemble the mobility matrix, and interaction matrix of a slender body
+    according to Slender Body Theory (Tornberg and Shelley) \n
 
-    With the calculated curve, the mobility matrix and interaction matrix can be calculated using Slender Body Theory.
-    To calculate the the mobility matrix use the method SlenderBody.construct_mobility_matrix()
-    To calculate the interaction matrix use the method SlenderBody.calc_interaction(points) \n
+    You do not directly use this class, but instead use 
 
-    Parameters
-    ----------
-    curvature       : numpy array   (N,)
-                      An array containing N curvatures for N nodes. So N-1 elements.
-    torsion         : numpy array   (N,)
-                      An array containing N torsions for N nodes. If the body is planar use an array of zeros.
-    theta_0         : float
-                      Initial angle in radians between the initial tangent vector and the x-axis.
-    rho_0           : float (optional) automatically set to 0
-                      Initial angle in radians between the initial binormal vector and the z-axis.
-    base_position   : numpy array (optional) automatically set to origin.
-                      Starting location of the curve.
-    flagellum_length: float or int (optional) automatically set to 10.
-                      Length of the flagellum (or in general the length of the curve).
-    flagellum_radius: float or int (optional) automatically set to 0.2.
-                      Radius of the flagellum (or in general the radius of the curve).
-    smin            : float (optional) automatically set to 0.15
-                      Starting arclength of the curve in terms of its length. Autmatically set to start 
-                      at 0.15L to avoid being to close to the cell body.
-    velocity        : numpy array (optional) (N, 3) automatically set to zeros(N,3)
-                      The velocity of the body at each element (Flagellum velocity).
-
-    Example
-    -------
-    Calculate the force on a slender beam in a flow u = [1, 0, 0].
-
-    >>> import bemsolver as bem
-    >>> import numpy as np
-
-    >>> U    = np.zeros(3)
-    >>> U[0] = 1
-    >>> W    = np.zeros(3)
-
-    >>> initial_angle = np.pi/2
-    >>> elements      = 20
-    >>> curvature     = np.ones(elements+1)
-    >>> torsion       = np.zeros_like(curvature)
-
-    >>> beam          = bem.SlenderBody(curvature, torsion, theta_0 = initial_angle, smin =0)
-    >>> M             = beam.construct_mobility_matrix()
-    >>> RHS           = beam.set_boundary_condition(U, W)   # rate of strain tensor is optional
-
-    >>> f             = np.linalg.solve(M, RHS)
-    >>> # reshape f to force vectors per element
-    >>> force_vectors = f.reshape(int(len(f)/3),3)
-
+    - SlenderCoordinates (if you already have the cartesian coordinates of your curve)
+    - SlenderAngles      (if you have the 'in-plane' angles and 'out-of-plane' angles of the curve)
+    - SlenderCurvTors    (if you have the curvatures and torsions of the curve)
     
     """
        
@@ -292,6 +245,57 @@ class SlenderBody:
 
 @dataclass
 class SlenderCoordinates(SlenderBody):
+    """
+    This class constructs a slender body directly from a set of Cartesian points 
+    describing the centerline of the body. The number of input points determines 
+    the number of nodes on the body. If points has length N, then the number of 
+    elements is N-1.
+
+    The tangent vectors are computed from the spatial gradient of the coordinates.
+    Using these coordinates, the mobility matrix and interaction matrix can be 
+    calculated using Slender Body Theory.
+
+    To calculate the mobility matrix use the method `SlenderCoordinates.construct_mobility_matrix()`
+    To calculate the interaction matrix between the slender body and some coordinates 'coords',
+    use the method `SlenderCoordinates.calc_interaction(coords)`.
+
+    Parameters
+    ----------
+    points            : numpy array (N, 3)
+                        Cartesian coordinates describing the centerline of the body.
+                        N nodes define N-1 elements.
+    velocity          : numpy array (N, 3) (optional)
+                        Velocity of the body at each node. Automatically set to zero
+                        if not provided.
+    flagellum_radius  : float or int (optional), default 0.2
+                        Radius of the slender body.
+    flagellum_length  : float or int (optional), default 7
+                        Total length of the body.
+    smin              : float (optional), default 0
+                        Fraction of the total length at which the curve starts.
+                        Points before smin * flagellum_length are discarded.
+
+    Example
+    -------
+    Construct a slender body from known coordinates.
+
+    >>> import bemsolver as bem
+    >>> import numpy as np
+    >>> U = np.zeros(3)
+    >>> U[0] = 1
+    >>> W = np.zeros(3)
+    >>>
+    >>> pts = np.random.rand(21, 3)
+    >>> body = bem.SlenderCoordinates(points=pts)
+    >>> M = body.construct_mobility_matrix()
+
+    >>> RHS           = body.set_boundary_condition(U, W)   # rate of strain tensor is optional
+
+    >>> f             = np.linalg.solve(M, RHS)
+    >>> # reshape f to force vectors per element
+    >>> force_vectors = f.reshape(int(len(f)/3),3)
+   
+    """
 
     points              :np.ndarray
 
@@ -303,26 +307,26 @@ class SlenderCoordinates(SlenderBody):
 
     def __post_init__(self):
         
-        
+        # Amount of nodes
         Nf = len(self.points)
-    
-                
-        # self.flagellum_length = #np.sum(np.linalg.norm(self.t,axis=1))
 
+        # Arclength of the body
         self.ssold = np.linspace(0, self.flagellum_length, Nf)
-        # self.ss = np.linspace(0, self.flagellum_length, Nf)
 
+        # Find the index at which s is larger than smin*length
         self.indstart        = np.min(np.where(self.ssold >= self.smin * self.flagellum_length))
         
+        # New arclength
         self.ss = self.ssold[self.indstart:]
+        
+        # Amount of ELEMENTS (#new nodes - 1)
         self.Nf=len(self.ss)-1
 
-
+        # Calc the flagellum element centroids and element lengths
         self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
         self.element_lengths =  self.ss[1:] - self.ss[:-1]
-        # print(self.element_lengths)
 
-
+        # Slenderness of the body
         self.slenderness = self.flagellum_radius / self.flagellum_length
 
         #==============cylinder=================
@@ -337,10 +341,11 @@ class SlenderCoordinates(SlenderBody):
 
         self.r=self.points[self.indstart+1:]
 
+        # Calc the tangent vectors along the curve
         self.t = np.gradient(self.r, self.element_lengths[0], axis=0)
-        # self.t = self.points[1:]-self.points[:-1]       
         self.tangents  = self.t/np.linalg.norm(self.t, axis=1, keepdims=True)
 
+        # If no velocity is passed on, use an array of zeros
         if self.velocity is None:
             self.velocity = np.zeros_like(self.r[1:])
         self.velocity=self.velocity[self.indstart+1:]
@@ -352,13 +357,65 @@ class SlenderCoordinates(SlenderBody):
 
 @dataclass
 class SlenderCurvTors(SlenderBody):
+    """
+    This class constructs a slender body from prescribed curvature and torsion
+    distributions using the Frenet-Serret equations. The number of curvature 
+    and torsion values determines the number of nodes on the body. If curvature 
+    has length N, then the number of elements is N-1.
+
+    The centerline is obtained by integrating the Frenet-Serret equations using
+    a fourth-order Runge-Kutta scheme. Using the resulting curve, the mobility 
+    matrix and interaction matrix can be calculated using Slender Body Theory.
+
+    To calculate the mobility matrix use the method `SlenderCurvTors.construct_mobility_matrix()`
+    To calculate the interaction matrix between the slender body and some coordinates 'coords',
+    use the method `SlenderCurvTors.calc_interaction(coords)`.
+
+    Parameters
+    ----------
+    curvature         : numpy array (N,)
+                        Curvature values at each node.
+    torsion           : numpy array (N,)
+                        Torsion values at each node. Use zeros for planar curves.
+    T_0               : numpy array (3,), optional
+                        Initial tangent vector.
+    N_0               : numpy array (3,), optional
+                        Initial normal vector.
+    base_position     : numpy array (3,), optional
+                        Starting position of the curve.
+    flagellum_length  : float or int (optional), default 10
+                        Total length of the slender body.
+    flagellum_radius  : float or int (optional), default 0.2
+                        Radius of the slender body.
+    smin              : float (optional), default 0.15
+                        Fraction of total length at which the curve starts.
+    velocity          : numpy array (N, 3) (optional)
+                        Velocity at each node. Automatically set to zero if not provided.
+
+    Example
+    -------
+    Construct a planar slender body from constant curvature.
+
+    >>> import bemsolver as bem
+    >>> import numpy as np
+    >>> U = np.zeros(3)
+    >>> U[0] = 1
+    >>> W = np.zeros(3)
+    >>>
+    >>> curvature = np.ones(21)
+    >>> torsion = np.zeros_like(curvature)
+    >>> body = bem.SlenderCurvTors(curvature, torsion)
+    >>> M = body.construct_mobility_matrix()
+
+    >>> RHS           = body.set_boundary_condition(U, W)   # rate of strain tensor is optional
+
+    >>> f             = np.linalg.solve(M, RHS)
+    >>> # reshape f to force vectors per element
+    >>> force_vectors = f.reshape(int(len(f)/3),3)
+    """
 
     curvature           : np.ndarray[float|int]
     torsion             : np.ndarray[float|int]
-    # theta_0             : int|float  
-
-    
-    # rho_0               : int|float             = field(default_factory=lambda: 0)
 
     T_0                 : np.ndarray            = field(default_factory=lambda: np.array([1.0,0,0]))
     N_0                 : np.ndarray            = field(default_factory=lambda: np.array([0,1.0,0]))
@@ -394,17 +451,23 @@ class SlenderCurvTors(SlenderBody):
         self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
         self.element_lengths =  self.ss[1:] - self.ss[:-1]
         
+        # slenderness of an ellipsoid
         self.slenderness = self.flagellum_radius / self.flagellum_length
 
-        self.r_epsilon = 2 * self.slenderness * np.sqrt(self.flag_centroids*(self.flagellum_length - self.flag_centroids))
+        #==========Slenderness of a cylinder==============
+        # self.r_epsilon = 2 * self.slenderness * np.sqrt(self.flag_centroids*(self.flagellum_length - self.flag_centroids))
 
-        self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
+        # self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
+        #=================================================
 
         # slend_2 might be flaggellum specific
         # self.slend_2 = self.flagellum_radius**2/(4*(self.flagellum_length - self.flag_centroids)*self.flag_centroids)
         # self.slend_2 = self.slenderness**2/(4*(1 - self.flag_centroids/self.flagellum_length)*self.flag_centroids/self.flagellum_length)
         # self.slend_2 = (self.r_epsilon / self.flagellum_length)**2
+
+
         self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
+
         # Frenet-Serret setup
         self.tangents = np.zeros((len(self.ssold), 3))
         self.r        = np.zeros((len(self.ssold), 3))
@@ -415,15 +478,7 @@ class SlenderCurvTors(SlenderBody):
         # self.T_0 = np.array([np.cos(self.theta_0) * np.cos(self.rho_0), 
         #                      np.sin(self.theta_0) * np.cos(self.rho_0),
         #                      np.sin(self.rho_0)])
-        
-        # self.T_0 = np.array([
-        #     -self.c/np.sqrt(self.R**2 + self.c**2),
-        #     self.R/np.sqrt(self.R**2 + self.c**2),
-        #     0.0
-        # ])
-
-        # self.N_0 = np.array([-1.0, 0.0, 0.0])
-        # self.B_0 = np.array([ 0.0, 0.0, 1.0])
+     
         
         self.tangents[0] = self.T_0
         
@@ -441,13 +496,10 @@ class SlenderCurvTors(SlenderBody):
         # self.N_0 = _normal_from_tangent(self.T_0)
         # self.N_0 /= np.linalg.norm(self.N_0)
 
+        # Initial binormal vector
         self.B_0 = np.cross(self.T_0, self.N_0)
         self.B_0 /= np.linalg.norm(self.B_0)
-        # self.N_0 = np.array([-np.sin(self.theta_0),np.cos(self.theta_0),0])
-        # self.N_0 = np.cross(self.B_0,self.T_0)
-        
-        # Initial binormal vector
-        # self.B_0 = np.cross(self.T_0, self.N_0)
+                
 
         self.calc_curve()
         
@@ -520,6 +572,60 @@ class SlenderCurvTors(SlenderBody):
 @dataclass
 class SlenderAngles(SlenderBody):
     
+    """
+    This class constructs a slender body from prescribed angular distributions.
+    The tangent vector at each node is defined by in-plane angle theta and 
+    out-of-plane angle phi. The number of angle values determines the number 
+    of nodes on the body. If theta has length N, then the number of elements 
+    is N-1.
+
+    The centerline coordinates are obtained by integrating the tangent vectors
+    using the trapezoidal rule. Using the resulting curve, the mobility matrix 
+    and interaction matrix can be calculated using Slender Body Theory.
+
+    To calculate the mobility matrix use the method `SlenderAngles.construct_mobility_matrix()`
+    To calculate the interaction matrix between the slender body and some coordinates 'coords',
+    use the method `SlenderAngles.calc_interaction(coords)`.
+
+    Parameters
+    ----------
+    theta             : numpy array (N,)
+                        In-plane angles defining the tangent direction.
+    phi               : numpy array (N,)
+                        Out-of-plane angles defining the tangent direction.
+    base_position     : numpy array (3,), optional
+                        Starting position of the curve.
+    velocity          : numpy array (N, 3) (optional)
+                        Velocity at each node. Automatically set to zero if not provided.
+    flagellum_radius  : float or int (optional), default 0.2
+                        Radius of the slender body.
+    flagellum_length  : float or int (optional), default 7
+                        Total length of the slender body.
+    smin              : float (optional), default 0
+                        Fraction of total length at which the curve starts.
+
+    Example
+    -------
+    Construct a slender body from prescribed angular distributions.
+
+    >>> import bemsolver as bem
+    >>> import numpy as np
+    >>> U = np.zeros(3)
+    >>> U[0] = 1
+    >>> W = np.zeros(3)
+    >>>
+    >>> theta = np.linspace(0, np.pi, 21)
+    >>> phi = np.zeros_like(theta)
+    >>> body = bem.SlenderAngles(theta, phi)
+    >>> M = body.construct_mobility_matrix()
+
+
+    >>> RHS           = body.set_boundary_condition(U, W)   # rate of strain tensor is optional
+
+    >>> f             = np.linalg.solve(M, RHS)
+    >>> # reshape f to force vectors per element
+    >>> force_vectors = f.reshape(int(len(f)/3),3)
+    """
 
     theta               : np.ndarray[float|int]
     phi                 : np.ndarray[float|int]
@@ -528,6 +634,7 @@ class SlenderAngles(SlenderBody):
     velocity            : np.ndarray            = field(default_factory=lambda: None)
     flagellum_radius    : int|float             = field(default_factory=lambda: 0.2)
     flagellum_length    : int|float             = field(default_factory=lambda: 7)
+    smin                : int|float             = field(default_factory=lambda: 0.0)
 
 
 
@@ -538,13 +645,16 @@ class SlenderAngles(SlenderBody):
         
         Nf = len(self.theta)
     
-        
-        # self.flagellum_length = #np.sum(np.linalg.norm(self.t,axis=1))
-
+        # Arclength of flagellum
         self.ss = np.linspace(0, self.flagellum_length, Nf)
-        self.Nf=len(self.ss)-1
 
+        # Find point on curve where it is larger than smin * length
+        self.indstart        = np.min(np.where(self.ss >= self.smin * self.flagellum_length))
+        
 
+        
+
+        # Calculate the center of every element of the curve and its length
         self.flag_centroids  = (self.ss[1:] + self.ss[:-1]) / 2
         self.element_lengths =  self.ss[1:] - self.ss[:-1]
 
@@ -555,17 +665,31 @@ class SlenderAngles(SlenderBody):
         
         self.tangents  = np.column_stack((tx, ty, tz))
 
-        self.slenderness = self.flagellum_radius / self.flagellum_length
-
-        self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
-
         self.r        = np.zeros((len(self.ss), 3))
         self.r[0]     = self.base_position
 
         # Use trapezoidal rule to calculate the coordinates of the curve
         for i in range(1,len(self.ss)):
             self.r[i] = self.r[i-1] + 0.5 * (self.tangents[i-1] + self.tangents[i]) * self.element_lengths[i-1]
-        
+
+        # make copy of full curve just in case
+        self.r_full = np.copy(self.r)
+
+        # start from smin * length
+        self.r               = self.r[self.indstart:]
+        self.ss              = self.ss[self.indstart:]
+        self.flag_centroids  = self.flag_centroids[self.indstart:]
+        self.element_lengths = self.element_lengths[self.indstart:]
+        self.tangents        = self.tangents[self.indstart]
+
+
+        # Amount of elements in curve
+        self.Nf=len(self.ss)-1
+
+        # calc slenderness of an ellipsoid for all elements (constant along the curve)
+        self.slenderness = self.flagellum_radius / self.flagellum_length
+
+        self.slend_2 = self.slenderness**2 * np.ones_like(self.flag_centroids)
 
         if self.velocity is None:
             self.velocity = np.zeros_like(self.r)
@@ -595,24 +719,3 @@ def _rk4_step(f: callable,
     k3 = f(y + ds*k2/2., s + ds/2)
     k4 = f(y + ds*k3, s + ds)
     return y + ds*(k1 + 2*k2 + 2*k3 + k4)/6.
-
-
-
-
-def _normal_from_tangent(t0):
-    """
-    Docstring for _normal_from_tangent
-    
-    :param t0: Description
-    """
-    t0 = np.asarray(t0, dtype=float)
-    t0 = t0 / np.linalg.norm(t0)
-
-    # Choose a reference vector not parallel to t0
-    ref = np.array([0.0, 0.0, 1.0])
-    if abs(np.dot(t0, ref)) > 0.9:   # nearly parallel
-        ref = np.array([0.0, 1.0, 0.0])
-
-    n0 = np.cross(t0, ref)
-    n0 = n0 / np.linalg.norm(n0)
-    return n0

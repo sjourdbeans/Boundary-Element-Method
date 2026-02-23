@@ -36,7 +36,7 @@ for i, file in enumerate(files):
     mesh=BEM.Mesh(file)
     b_arr[i]=mesh.b
 
-    sys=BEM.System(mesh)
+    sys=BEM.ResistanceProblem(mesh)
 
     psi, force, torque = sys.solve(U,W)
     torque_z[i]=torque[2]
