@@ -169,7 +169,8 @@ def rk2(RHS, Y, t, dt):
     q = Y[3:7]
 
     # ---- stage 1
-    U1, omega1 = RHS(t, Y)
+    Ydot =RHS(t, Y)
+    U1, omega1 = Ydot[:3], Ydot[3:]
 
     x_predict = x + dt * U1
 
