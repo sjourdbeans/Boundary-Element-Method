@@ -86,9 +86,9 @@ class Mesh:
         # XG is the center of the centerline
         self.parameters={"XG":(self.x_max+self.x_min)/2,
                          "line_scale":0.9,
-                         "Delta_rho": 30,            # kg/ m^3 density difference between cell and fluid      (values from Ishikawa 2020: doi:10.1242/jeb.205989)
+                         "Delta_rho": 0, #30,            # kg/ m^3 density difference between cell and fluid      (values from Ishikawa 2020: doi:10.1242/jeb.205989)
                          "medium_rho":1000,          # kg/ m^3 density of the fluid
-                         "COM_offset": 30 * 10**-3,  # Offset from geometric center to center of mass in micron
+                         "COM_offset": 0, # 30 * 10**-3,  # Offset from geometric center to center of mass in micron
                          "volume":4/3*np.pi*self.a*self.b**2 if self.a is not None and self.b is not None else 0} # Volume of the ellipsoid in micron^3
         # NOTE: Volume is only correct if the mesh is an ellipsoid. If it has a different shape assign it yourself.
         print("Loading complete!")
