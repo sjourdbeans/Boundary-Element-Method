@@ -823,8 +823,8 @@ class FreeSwimmer(BaseSystem):
         q_dot = omega_to_quat_dot(q, omega_lab)
 
         # Make vector containing the time derivatives
-        Y_dot = np.hstack((u_lab,q_dot))
-        # Y_dot = np.hstack((u_lab,omega_lab))
+        # Y_dot = np.hstack((u_lab,q_dot))
+        Y_dot = np.hstack((u_lab,omega_lab))
 
         return Y_dot
         
