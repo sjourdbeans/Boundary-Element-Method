@@ -11,7 +11,7 @@ from .flagella import SlenderBody
 from .flowfield import FlowStokes
 from .SaveData import Solution
 from .utils import points_in_polygon
-from .time_integration import rotate_BCs, forward_euler, omega_to_quat_dot, pyr_to_quat
+from .time_integration import rotate_BCs, forward_euler, rk2, omega_to_quat_dot, pyr_to_quat
 
 
 
@@ -762,7 +762,8 @@ class FreeSwimmer(BaseSystem):
 
         
         # Time integration using forward euler, self.calc_RHS returns the right hand side of the ODE
-        Y_next = forward_euler(self.calc_Y_dot, Y_0, time, dt)       
+        # Y_next = forward_euler(self.calc_Y_dot, Y_0, time, dt)  
+        Y_next = rk2(self.calc_Y_dot, Y_0, time, dt)       
 
         # Unpack new timestep
         x, q = Y_next[:3], Y_next[3:]
@@ -822,7 +823,8 @@ class FreeSwimmer(BaseSystem):
         q_dot = omega_to_quat_dot(q, omega_lab)
 
         # Make vector containing the time derivatives
-        Y_dot = np.hstack((u_lab,q_dot))
+        # Y_dot = np.hstack((u_lab,q_dot))
+        Y_dot = np.hstack((u_lab,omega_lab))
 
         return Y_dot
         

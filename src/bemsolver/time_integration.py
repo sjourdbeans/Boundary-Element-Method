@@ -83,6 +83,16 @@ def forward_euler(RHS :Callable[[np.ndarray], np.ndarray],
    
     return Y_next
 
+def rk2(RHS, Y, t, dt):
+    k1 = RHS(t, Y)
+    Y_predict = Y + dt * k1
+    k2 = RHS(t + dt, Y_predict)
+    Y_next = Y + dt * 0.5 * (k1 + k2)
+
+    # normalize quaternion
+    Y_next[3:] /= np.linalg.norm(Y_next[3:])
+    return Y_next
+
 def rotate_BCs(Q, U, W, E):
     """
     Rotate the boundary conditions to particle frame.
