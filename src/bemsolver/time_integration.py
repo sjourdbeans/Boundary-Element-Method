@@ -169,8 +169,8 @@ def rk2(RHS, Y, t, dt):
     q = Y[3:7]
 
     # ---- stage 1
-    Ydot =RHS(t, Y)
-    U1, omega1 = Ydot[:3], Ydot[3:]
+    Ydot_1 =RHS(t, Y)
+    U1, omega1 = Ydot_1[:3], Ydot_1[3:]
 
     x_predict = x + dt * U1
 
@@ -180,7 +180,8 @@ def rk2(RHS, Y, t, dt):
     Y_predict = np.concatenate([x_predict, q_predict])
 
     # ---- stage 2
-    U2, omega2 = RHS(t + dt, Y_predict)
+    Ydot_2 = RHS(t + dt, Y_predict)
+    U2, omega2 = Ydot_2[:3], Ydot_2[3:]
 
     # ---- translation RK2
     x_next = x + 0.5 * dt * (U1 + U2)
