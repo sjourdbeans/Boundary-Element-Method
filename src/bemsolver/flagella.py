@@ -275,6 +275,25 @@ class SlenderCoordinates(SlenderBody):
                         Fraction of the total length at which the curve starts.
                         Points before smin * flagellum_length are discarded.
 
+    Attributes
+    ----------
+    r : numpy.ndarray (Nf, 3)
+        Cartesian coordinates of element nodes after truncation.
+    tangents : numpy.ndarray (Nf, 3)
+        Unit tangent vectors along the body.
+    ss : numpy.ndarray
+        Arclength positions of nodes.
+    flag_centroids : numpy.ndarray
+        Arclength positions of element midpoints.
+    element_lengths : numpy.ndarray
+        Length of each element.
+    Nf : int
+        Number of elements.
+    slenderness : float
+        Radius-to-length ratio.
+    slend_2 : numpy.ndarray
+        Squared slenderness parameter per element.
+
     Example
     -------
     Construct a slender body from known coordinates.
@@ -391,6 +410,27 @@ class SlenderCurvTors(SlenderBody):
                         Fraction of total length at which the curve starts.
     velocity          : numpy array (N, 3) (optional)
                         Velocity at each node. Automatically set to zero if not provided.
+
+    Attributes
+    ----------
+    r : numpy.ndarray (Nf, 3)
+        Cartesian coordinates of the centerline after truncation.
+    tangents : numpy.ndarray (Nf, 3)
+        Unit tangent vectors obtained from Frenet-Serret integration.
+    ss : numpy.ndarray
+        Arclength positions of nodes.
+    flag_centroids : numpy.ndarray
+        Arclength positions of element midpoints.
+    element_lengths : numpy.ndarray
+        Length of each element.
+    Nf : int
+        Number of elements.
+    ds : float
+        Uniform arclength spacing.
+    slenderness : float
+        Radius-to-length ratio.
+    slend_2 : numpy.ndarray
+        Squared slenderness parameter per element.
 
     Example
     -------
@@ -603,6 +643,25 @@ class SlenderAngles(SlenderBody):
                         Total length of the slender body.
     smin              : float (optional), default 0
                         Fraction of total length at which the curve starts.
+
+    Attributes
+    ----------
+    r : numpy.ndarray (Nf, 3)
+        Cartesian coordinates of the centerline after truncation.
+    tangents : numpy.ndarray (Nf, 3)
+        Unit tangent vectors defined by theta and phi.
+    ss : numpy.ndarray
+        Arclength positions of nodes.
+    flag_centroids : numpy.ndarray
+        Arclength positions of element midpoints.
+    element_lengths : numpy.ndarray
+        Length of each element.
+    Nf : int
+        Number of elements.
+    slenderness : float
+        Radius-to-length ratio.
+    slend_2 : numpy.ndarray
+        Squared slenderness parameter per element.
 
     Example
     -------
