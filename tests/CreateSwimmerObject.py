@@ -30,12 +30,11 @@ mpl.rcParams["legend.fontsize"]=13
 
 
 
-waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/lib02_1_90_2019-06-28_1640.mat")
 chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
 # chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/sphere_chlamy_N=320.mat"
 
-movie_data="/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Holographic_microscopy_Chlamy/Movie data/CC125_4_2_T_avg_int.txt"
-movie_data_2="/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Holographic_microscopy_Chlamy/Movie data/CC125_4_2_C_avg_int.txt"
+movie_data="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_T_avg_int.txt"
+movie_data_2="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_C_avg_int.txt"
 coords =np.loadtxt(movie_data)
 coords_2 =np.loadtxt(movie_data_2)
 

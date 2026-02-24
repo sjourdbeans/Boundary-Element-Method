@@ -30,7 +30,7 @@ mpl.rcParams["axes.labelsize"]=15
 mpl.rcParams["axes.titlesize"]=15
 mpl.rcParams["legend.fontsize"]=13
 
-waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/lib02_1_90_2019-06-28_1640.mat")
+waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-2D/lib02_1_90_2019-06-28_1640.mat")
 
 
 frame = 20

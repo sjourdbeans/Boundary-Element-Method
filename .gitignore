@@ -6,5 +6,5 @@ datafiles/Simulation-results-old
 datafiles/BEM-results/BEM-Flow.mat
 datafiles/BEM-results/*
 src/bemsolver.egg-info
-datafiles
+# datafiles
 src/bemsolver/__pycache__

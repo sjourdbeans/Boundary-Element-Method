@@ -30,7 +30,7 @@ mpl.rcParams["legend.fontsize"]=13
 
 
 
-waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Euglena-Antonio/Figure 7 - Codes/Euglena_waveform.mat")
+waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Euglena/Euglena_waveform_half_frames.mat")
 euglena_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Euglena/Euglena_Rossi_N=320.mat"
 
 
@@ -50,10 +50,13 @@ r1 = waveformfile["r1"]
 r2 = waveformfile["r2"]
 r3 = waveformfile["r3"]
 
-dt = 0.025/100
+
 
 R = np.array([r1,r2,r3])*lf
 
+N_frames = np.shape(r1)[-1]
+
+dt = 0.025/N_frames
 
 
 
@@ -66,7 +69,7 @@ V = (np.roll(R, -1, axis=2) -
 flagellum= []
 
 
-N_frames = np.shape(r1)[-1]
+
 
 Rotmat = lambda angle: np.array([[np.cos(angle), -np.sin(angle), 0],
                                  [np.sin(angle) , np.cos(angle), 0],
@@ -130,7 +133,7 @@ euglena = bem.FreeSwimmer(mesh,
 # # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_stepsize=5_test.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_full_frames.pkl", "wb") as f:
     pickle.dump(euglena, f)
 
 

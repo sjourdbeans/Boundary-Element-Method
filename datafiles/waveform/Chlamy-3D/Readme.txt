@@ -1,0 +1,3 @@
+The data here represents the frames of the supplementary movie of beating flagella of a cell of Chlamydomonas reinhardtii CC-125, with cis- and trans- associations indicated in the file names.  Columns 1,2,3 represent x,y and z respectively, in micrometres.
+
+The data are arranged into blocks of 20 data points (flagellar segments).  Each block corresponds to a single averaged time instance, with each beat divided into 50 'frames' (each approximately 400 microseconds in duration).
