@@ -89,10 +89,10 @@ for time_frame in range(factor*Nt):
     r2_map[time_frame,:,:] = curve_2.r
 
 
-V = 0*(np.roll(r1_map, -1, axis=0) - 
+V = (np.roll(r1_map, -1, axis=0) - 
      np.roll(r1_map,  1, axis=0)) / (2*dt)
 
-V2 = 0*(np.roll(r2_map, -1, axis=0) - 
+V2 = (np.roll(r2_map, -1, axis=0) - 
      np.roll(r2_map,  1, axis=0)) / (2*dt)
 
 # V = np.gradient(r1_map, dt, axis=0)

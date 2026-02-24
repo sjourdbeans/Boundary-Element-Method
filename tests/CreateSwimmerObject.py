@@ -50,11 +50,12 @@ R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *12
 
 dt=400*10**(-6)
 # dt=0.00004
-V =(R[1:]-R[:-1])/dt
-V = np.vstack((V, (R[-1]-R[0]).reshape(1,20,3)/dt))
+V = (np.roll(R, -1, axis=0) - 
+     np.roll(R,  1, axis=0)) / (2*dt)
 
-V2 =(R2[1:]-R2[:-1])/dt
-V2 = np.vstack((V2, (R2[-1]-R2[0]).reshape(1,20,3)/dt))
+V2 = (np.roll(R2, -1, axis=0) - 
+     np.roll(R2,  1, axis=0)) / (2*dt)
+
 
 
 
