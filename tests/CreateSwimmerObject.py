@@ -47,6 +47,8 @@ rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
 R = coords.reshape(int(len(coords)/20),20,3)/7 * 12
 R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *12
 # frame =5
+# R = R[::2,:,:]
+# R2 =R2[::2,:,:]
 
 dt=400*10**(-6)
 # dt=0.00004
@@ -62,7 +64,7 @@ V2 = (np.roll(R2, -1, axis=0) -
 flagellum_1 = []
 flagellum_2 = []
 
-N_frames = len(R)-1
+N_frames = len(R)
 
 mesh = bem.Mesh(chlamy_path)
 # mesh.plot_mesh()
@@ -70,7 +72,7 @@ mesh = bem.Mesh(chlamy_path)
 # plt.show()
 
 # loop over all frames to create flagellum objects
-for frame in range(N_frames):
+for frame in range(N_frames)[::2]:
     frame = frame % N_frames
 
     R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
@@ -98,7 +100,7 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform_stepsize=1_quat.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
 
