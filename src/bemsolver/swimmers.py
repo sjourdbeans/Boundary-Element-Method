@@ -599,6 +599,9 @@ class FreeSwimmer(BaseSystem):
                       ) -> Solution:
         """
         Solve the mobility problem over time given a function that provides the boundary conditions.
+        NOTE: dt is passed along as a variable to multiple functions in this algorithm. However, it is also
+        set as an attribute, so it might not be necessary to pass it along to every function. I leave it like this
+        such that it is clear it depends on dt.
 
         Parameters
         ----------
@@ -633,11 +636,6 @@ class FreeSwimmer(BaseSystem):
         # Make dt an attribute
         self.dt = dt
 
-        # ==========try AI suggestion============
-        self.dt_wave = dt  # set this to experimental frame spacing if different
-        self.T_wave = self.N_frames * self.dt_wave
-
-        #=========================================
         total_frames = int(round(t_end / self.dt))
         # print(t_end // self.dt) 
 
@@ -692,11 +690,9 @@ class FreeSwimmer(BaseSystem):
                 print(f"Computing frame {frame_index} out of {total_frames}")
 
             # Update time array
-            self.solution.time[frame_index+1] = (frame_index+1) * dt
+            self.solution.time[frame_index + 1] = (frame_index + 1) * dt
 
             # Calculate the next timestep
-            # x, q, p, Q, phi, u, omega = self.solve_RBM(x, q, (frame_index+1)*dt, dt)
-            # AI suggestion
             x, q, p, Q, phi, u, omega = self.solve_RBM(x, q, (frame_index)*dt, dt)
 
 
@@ -776,7 +772,8 @@ class FreeSwimmer(BaseSystem):
         # Unpack new timestep
         x, q = Y_next[:3], Y_next[3:]
 
-        phi, u, omega = self.calc_RBM(x, q, time)
+        # Use next time frame to solve
+        phi, u, omega = self.calc_RBM(x, q, time + dt)
 
         # Convert quaternion vector to cartesian matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
@@ -831,148 +828,83 @@ class FreeSwimmer(BaseSystem):
         q_dot = omega_to_quat_dot(q, omega_lab)
 
         # Make vector containing the time derivatives
-        # Y_dot = np.hstack((u_lab,q_dot))
-        Y_dot = np.hstack((u_lab,omega_lab))
+        Y_dot = np.hstack((u_lab,q_dot))
+        # Y_dot = np.hstack((u_lab,omega_lab))
 
         return Y_dot
 
-    def calc_RBM(self, x, q, t) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        # 1) Map continuous time -> phase between two waveform frames
-        # Requires self.dt_wave and self.T_wave set in RBM_over_time
-        # (e.g. self.dt_wave = experimental frame spacing, self.T_wave = self.N_frames*self.dt_wave)
-        phase = (t % self.T_wave) / self.dt_wave
-        i0 = int(np.floor(phase)) % self.N_frames
-        a = phase - np.floor(phase)          # interpolation weight in [0,1)
-        i1 = (i0 + 1) % self.N_frames
+    
 
-        # 2) Background flow + frame rotation
-        U, W, E = self.flow_function(t, x)
+        
+
+    def calc_RBM(self, x, q, t)->tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Calculates the RBM of the particle at the current state with the LU decomposition
+        of the grand mobility matrix.
+
+        Parameters
+        ----------
+        x               : numpy array
+                          Current x location of the geometrical center of the swimmer
+        q               : numpy array
+                          Current orientation as a quaternion vector
+        t               : float
+                          Current time in the simulation in seconds
+        Returns
+        -------
+        phi     : numpy array (1, N) with N the amount of elements + flagella_1 elements + flagella_2 elements (if present)
+                  The solution for the singularity density.
+        u       : numpy array (1, 3)
+                  Translational velocity of the particle
+        omega   : numpy array (1, 3)
+                : Angular velocity of the particle 
+        """
+
+        time_index = int(round(t/self.dt)) % self.N_frames
+
+
+        # Find the current flowfield at x
+        U, W, E = self.flow_function(t,x)  
+        
+        # Find cartesian rotation matrix
         Q = R.from_quat(q, scalar_first=True).as_matrix()
+
+        # Rotate the boundary conditions to the particle frame
         U_body, W_body, E_body = rotate_BCs(Q, U, W, E)
+        
 
-        # 3) Head RHS (same for both frame solves)
+        # Construct the boundary conditions
         rhs_h = self.set_boundary_condition(U_body, W_body, E_body)
+        rhs_f1 = self.flagellum_1[time_index].set_boundary_condition(U_body, W_body, E_body)
 
-        # 4) Build RHS for frame i0
-        rhs_f1_0 = self.flagellum_1[i0].set_boundary_condition(U_body, W_body, E_body)
-        if self.flagellum_2 is None:
-            rhs0 = np.concatenate([rhs_h, rhs_f1_0])
+        if self.flagellum_2 is None:            
+            rhs = np.concatenate([rhs_h, rhs_f1])
+
         else:
-            rhs_f2_0 = self.flagellum_2[i0].set_boundary_condition(U_body, W_body, E_body)
-            rhs0 = np.concatenate([rhs_h, rhs_f1_0, rhs_f2_0])
+            rhs_f2 = self.flagellum_2[time_index].set_boundary_condition(U_body, W_body, E_body)
+            rhs = np.concatenate([rhs_h, rhs_f1, rhs_f2])
 
-        # 5) Build RHS for frame i1
-        rhs_f1_1 = self.flagellum_1[i1].set_boundary_condition(U_body, W_body, E_body)
-        if self.flagellum_2 is None:
-            rhs1 = np.concatenate([rhs_h, rhs_f1_1])
-        else:
-            rhs_f2_1 = self.flagellum_2[i1].set_boundary_condition(U_body, W_body, E_body)
-            rhs1 = np.concatenate([rhs_h, rhs_f1_1, rhs_f2_1])
 
-        # 6) Gravity terms (same for both solves at this t,q)
-        V = self.mesh.parameters["volume"] * 1e-18
-        F_gravity = V * self.mesh.parameters["Delta_rho"] * (Q.T @ self.gravity) * 1e12
-        T_gravity = -V * (self.mesh.parameters["medium_rho"] + self.mesh.parameters["Delta_rho"]) \
-                    * (self.mesh.parameters["COM_offset"] * 1e-6) \
-                    * (Q.T @ np.cross(Q[:, 0], self.gravity)) * 1e18
+        V = self.mesh.parameters["volume"] * 1e-18 # Convert to m^3
 
-        RHS0 = np.hstack((-rhs0, F_gravity, T_gravity))
-        RHS1 = np.hstack((-rhs1, F_gravity, T_gravity))
+        # Calculate gravitational force in body frame
+        F_gravity = V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
+        # print(F_gravity)
+        T_gravity = -  V *  (self.mesh.parameters["medium_rho"] 
+                                      + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
+        # T_gravity = np.cross(np.array([self.mesh.parameters["COM_offset"]*1000 , 0, 0]), F_gravity)  #Convert to pNum (10^-6 term)
+        RHS = np.hstack((-rhs, F_gravity, T_gravity))
 
-        # 7) Solve both frame systems, then interpolate solution vectors
-        piv0 = self.piv_vector[i0].astype(int)
-        piv1 = self.piv_vector[i1].astype(int)
-
-        sol0 = lu_solve((self.LU_matrix[i0], piv0), RHS0)
-        sol1 = lu_solve((self.LU_matrix[i1], piv1), RHS1)
-        sol = (1.0 - a) * sol0 + a * sol1
-
-        # 8) Unpack interpolated solution
-        phi = sol[:-6]
-        u = sol[-6:-3]
+        # No slip, so solve for negative RHS
+        sol = lu_solve((self.LU_matrix[time_index], self.piv_vector[time_index]), RHS)
+        
+        # Unpack solution
+        phi   = sol[:-6]
+        u     = sol[-6:-3] 
         omega = sol[-3:]
 
+
         return phi, u, omega
-
-        
-
-    # def calc_RBM(self, x, q, t)->tuple[np.ndarray, np.ndarray, np.ndarray]:
-    #     """
-    #     Calculates the RBM of the particle at the current state with the LU decomposition
-    #     of the grand mobility matrix.
-
-    #     Parameters
-    #     ----------
-    #     x               : numpy array
-    #                       Current x location of the geometrical center of the swimmer
-    #     q               : numpy array
-    #                       Current orientation as a quaternion vector
-    #     t               : float
-    #                       Current time in the simulation in seconds
-    #     Returns
-    #     -------
-    #     phi     : numpy array (1, N) with N the amount of elements + flagella_1 elements + flagella_2 elements (if present)
-    #               The solution for the singularity density.
-    #     u       : numpy array (1, 3)
-    #               Translational velocity of the particle
-    #     omega   : numpy array (1, 3)
-    #             : Angular velocity of the particle 
-    #     """
-
-    #     # time_index = int(round(t/self.dt)) % self.N_frames
-
-    #     #============== AI suggestion===============
-    #     phase = (t % self.T_wave) / self.dt_wave
-    #     time_index = int(np.floor(phase)) % self.N_frames
-
-    #     i0 = int(np.floor(phase)) % self.N_frames
-    #     a = phase - np.floor(phase)
-    #     i1 = (i0 + 1) % self.N_frames
-
-    #     #============================================
-
-    #     # Find the current flowfield at x
-    #     U, W, E = self.flow_function(t,x)  
-        
-    #     # Find cartesian rotation matrix
-    #     Q = R.from_quat(q, scalar_first=True).as_matrix()
-
-    #     # Rotate the boundary conditions to the particle frame
-    #     U_body, W_body, E_body = rotate_BCs(Q, U, W, E)
-        
-
-    #     # Construct the boundary conditions
-    #     rhs_h = self.set_boundary_condition(U_body, W_body, E_body)
-    #     rhs_f1 = self.flagellum_1[time_index].set_boundary_condition(U_body, W_body, E_body)
-
-    #     if self.flagellum_2 is None:            
-    #         rhs = np.concatenate([rhs_h, rhs_f1])
-
-    #     else:
-    #         rhs_f2 = self.flagellum_2[time_index].set_boundary_condition(U_body, W_body, E_body)
-    #         rhs = np.concatenate([rhs_h, rhs_f1, rhs_f2])
-
-
-    #     V = self.mesh.parameters["volume"] * 1e-18 # Convert to m^3
-
-    #     # Calculate gravitational force in body frame
-    #     F_gravity = V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
-    #     # print(F_gravity)
-    #     T_gravity = -  V *  (self.mesh.parameters["medium_rho"] 
-    #                                   + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
-    #     # T_gravity = np.cross(np.array([self.mesh.parameters["COM_offset"]*1000 , 0, 0]), F_gravity)  #Convert to pNum (10^-6 term)
-    #     RHS = np.hstack((-rhs, F_gravity, T_gravity))
-
-    #     # No slip, so solve for negative RHS
-    #     sol = lu_solve((self.LU_matrix[time_index], self.piv_vector[time_index]), RHS)
-        
-    #     # Unpack solution
-    #     phi   = sol[:-6]
-    #     u     = sol[-6:-3] 
-    #     omega = sol[-3:]
-
-
-    #     return phi, u, omega
     
     
     def calc_vector_field(self,

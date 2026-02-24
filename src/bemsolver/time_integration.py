@@ -83,15 +83,15 @@ def forward_euler(RHS :Callable[[np.ndarray], np.ndarray],
    
     return Y_next
 
-# def rk2(RHS, Y, t, dt):
-#     k1 = RHS(t, Y)
-#     Y_predict = Y + dt * k1
-#     k2 = RHS(t + dt, Y_predict)
-#     Y_next = Y + dt * 0.5 * (k1 + k2)
+def rk2(RHS, Y, t, dt):
+    k1 = RHS(t, Y)
+    Y_predict = Y + dt * k1
+    k2 = RHS(t + dt, Y_predict)
+    Y_next = Y + dt * 0.5 * (k1 + k2)
 
-#     # normalize quaternion
-#     Y_next[3:] /= np.linalg.norm(Y_next[3:])
-#     return Y_next
+    # normalize quaternion
+    Y_next[3:] /= np.linalg.norm(Y_next[3:])
+    return Y_next
 
 def rotate_BCs(Q, U, W, E):
     """
@@ -104,16 +104,7 @@ def rotate_BCs(Q, U, W, E):
 
     return U_body, W_body, E_body
 
-# def omega_to_quat_dot(q, omega):
-#     """Compute quaternion derivative dq/dt = 0.5 * Ω(ω) * q for [w,x,y,z]."""
-#     wx, wy, wz = omega
-#     Omega = np.array([
-#         [0.0, -wx, -wy, -wz],
-#         [wx,  0.0,  wz, -wy],
-#         [wy, -wz,  0.0,  wx],
-#         [wz,  wy, -wx,  0.0]
-#     ])
-#     return 0.5 * Omega @ q
+
 
 def omega_to_quat_dot(q, omega):
     """dq/dt = 0.5 * q ⊗ (0, omega) in the lab frame"""
@@ -160,37 +151,37 @@ def quat_exp(omega, dt):
     ])
 
 
-def rk2(RHS, Y, t, dt):
-    """
-    RK2 (Heun) for translation + exponential map for quaternion.
-    """
-    # ---- unpack state
-    x = Y[:3]
-    q = Y[3:7]
+# def rk2(RHS, Y, t, dt):
+#     """
+#     RK2 (Heun) for translation + exponential map for quaternion.
+#     """
+#     # ---- unpack state
+#     x = Y[:3]
+#     q = Y[3:7]
 
-    # ---- stage 1
-    Ydot_1 =RHS(t, Y)
-    U1, omega1 = Ydot_1[:3], Ydot_1[3:]
+#     # ---- stage 1
+#     Ydot_1 =RHS(t, Y)
+#     U1, omega1 = Ydot_1[:3], Ydot_1[3:]
 
-    x_predict = x + dt * U1
+#     x_predict = x + dt * U1
 
-    dq1 = quat_exp(omega1, dt)
-    q_predict = quat_multiply(dq1, q)
+#     dq1 = quat_exp(omega1, dt)
+#     q_predict = quat_multiply(dq1, q)
 
-    Y_predict = np.concatenate([x_predict, q_predict])
+#     Y_predict = np.concatenate([x_predict, q_predict])
 
-    # ---- stage 2
-    Ydot_2 = RHS(t + dt, Y_predict)
-    U2, omega2 = Ydot_2[:3], Ydot_2[3:]
+#     # ---- stage 2
+#     Ydot_2 = RHS(t + dt, Y_predict)
+#     U2, omega2 = Ydot_2[:3], Ydot_2[3:]
 
-    # ---- translation RK2
-    x_next = x + 0.5 * dt * (U1 + U2)
+#     # ---- translation RK2
+#     x_next = x + 0.5 * dt * (U1 + U2)
 
-    # ---- rotation using averaged angular velocity
-    omega_avg = 0.5 * (omega1 + omega2)
-    dq = quat_exp(omega_avg, dt)
+#     # ---- rotation using averaged angular velocity
+#     omega_avg = 0.5 * (omega1 + omega2)
+#     dq = quat_exp(omega_avg, dt)
 
-    q_next = quat_multiply(dq, q)
-    q_next /= np.linalg.norm(q_next)  # numerical safety
+#     q_next = quat_multiply(dq, q)
+#     q_next /= np.linalg.norm(q_next)  # numerical safety
 
-    return np.concatenate([x_next, q_next])
+#     return np.concatenate([x_next, q_next])
