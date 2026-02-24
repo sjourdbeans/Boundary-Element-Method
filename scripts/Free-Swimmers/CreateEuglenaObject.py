@@ -54,6 +54,9 @@ dt = 0.025/100
 
 R = np.array([r1,r2,r3])*lf
 
+
+
+
 # V = np.gradient(R, dt,axis=2)
 V = (np.roll(R, -1, axis=2) - 
      np.roll(R,  1, axis=2)) / (2*dt)
@@ -91,7 +94,7 @@ angle_x = 0#np.pi/10
 angle_y = np.pi/6 
 mesh = bem.Mesh(euglena_path)
 
-for frame in range(N_frames)[::5]:
+for frame in range(N_frames):
 
     r = (Ry(angle_y) @ Rx(angle_x) @ Rotmat(rotate_flag) @  R[:,:,frame]).T + base_position 
     # print(r)
@@ -102,7 +105,7 @@ for frame in range(N_frames)[::5]:
 
 
 
-    flag = bem.SlenderCoordinates(r, velocity=v, flagellum_length=lf,flagellum_radius=0.15, smin=0.1)
+    flag = bem.SlenderCoordinates(r, velocity=v, flagellum_length=lf,flagellum_radius=0.35, smin=0.1)
     # print(flag.tangents)
     # mesh.plot_mesh()
     # plt.plot(r[:,0], r[:,1], r[:,2], color='r',zorder=3)

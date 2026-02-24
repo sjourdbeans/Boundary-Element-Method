@@ -70,7 +70,7 @@ mesh = bem.Mesh(chlamy_path)
 # plt.show()
 
 # loop over all frames to create flagellum objects
-for frame in range(N_frames)[::2]:
+for frame in range(N_frames):
     frame = frame % N_frames
 
     R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
@@ -98,7 +98,7 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform_stepsize=1_quat.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
 
