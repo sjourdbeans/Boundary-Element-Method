@@ -30,32 +30,49 @@ mpl.rcParams["legend.fontsize"]=13
 
 
 
-waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Euglena/Euglena_waveform_half_frames.mat")
+# waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Euglena/Euglena_waveform_quarter_frames_50_periods.mat")
+waveformfile      =loadmat("/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Euglena-Antonio/Figure 2 - Source Data & Code/flagellum.mat")
 euglena_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Euglena/Euglena_Rossi_N=320.mat"
 
 
-# print(phi_body)
+eug_I = waveformfile["splnoptptI"]
+eug_J = waveformfile["splnoptptJ"]
+eug_K = waveformfile["splnoptptK"]
 
-xbase =22
-ybase = 1.5
-zbase = -1.5
+R = np.array([eug_I.T , eug_J.T, eug_K.T])
+R = R - R[:,0,None]
 
+t = R[:,1:,:]-R[:,:-1,:]
+print(np.sum(np.linalg.norm(t, axis=0),axis=0))
+R = R/ np.sum(np.linalg.norm(t, axis=0),axis=0)
 
-
-lf = 28 
-
-
-
-r1 = waveformfile["r1"]
-r2 = waveformfile["r2"]
-r3 = waveformfile["r3"]
+lf = 40#28
+R= R*lf 
 
 
+# print(R)
 
-R = np.array([r1,r2,r3])*lf
+xbase =22 #22
+ybase = 0#1#1.5
+zbase = 0 #-1.5
 
-N_frames = np.shape(r1)[-1]
 
+
+
+
+
+
+# r1 = waveformfile["r1"]
+# r2 = waveformfile["r2"]
+# r3 = waveformfile["r3"]
+
+
+
+# R = np.array([r1,r2,r3])*lf
+# R=R[:,:,:-1]
+
+N_frames = np.shape(R)[-1]
+print(N_frames)
 dt = 0.025/N_frames
 
 
@@ -92,9 +109,9 @@ base_position = np.array([xbase , ybase, zbase])
 # print(N_frames)
 
 
-rotate_flag = np.pi/2 + 1.5*np.pi/6  #+np.pi/6
-angle_x = 0#np.pi/10
-angle_y = np.pi/6 
+rotate_flag =0# np.pi/2 + 1.5*np.pi/6  #+0.2*np.pi/6
+angle_x = 0#np.pi/2#-1.6*np.pi/6
+angle_y = np.pi/2#1*np.pi/7
 mesh = bem.Mesh(euglena_path)
 
 for frame in range(N_frames):
@@ -108,7 +125,7 @@ for frame in range(N_frames):
 
 
 
-    flag = bem.SlenderCoordinates(r, velocity=v, flagellum_length=lf,flagellum_radius=0.35, smin=0.1)
+    flag = bem.SlenderCoordinates(r, velocity=v, flagellum_length=lf,flagellum_radius=0.1, smin=0.1)
     # print(flag.tangents)
     # mesh.plot_mesh()
     # plt.plot(r[:,0], r[:,1], r[:,2], color='r',zorder=3)
@@ -133,7 +150,7 @@ euglena = bem.FreeSwimmer(mesh,
 # # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_full_frames.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_experimental.pkl", "wb") as f:
     pickle.dump(euglena, f)
 
 

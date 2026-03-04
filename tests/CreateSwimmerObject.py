@@ -43,10 +43,16 @@ theta=np.pi/2
 rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
                  [np.sin(theta), np.cos(theta),0],
                  [0,0,1]])
+lf=12
 
-R = coords.reshape(int(len(coords)/20),20,3)/7 * 12
-R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *12
+R = coords.reshape(int(len(coords)/20),20,3)/7 * lf
+R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *lf
 # frame =5
+
+# R2 = R.copy()
+# R2[:,:,0] *= -1
+# R2[:,:,2] *= -1
+
 # R = R[::2,:,:]
 # R2 =R2[::2,:,:]
 
@@ -72,7 +78,7 @@ mesh = bem.Mesh(chlamy_path)
 # plt.show()
 
 # loop over all frames to create flagellum objects
-for frame in range(N_frames)[::2]:
+for frame in range(N_frames):
     frame = frame % N_frames
 
     R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
@@ -82,9 +88,9 @@ for frame in range(N_frames)[::2]:
     v= (rotmat @ V[frame].T ).T
     v2=(rotmat @ V2[frame].T).T
 
-    flag1 = bem.SlenderCoordinates(R[frame],v, flagellum_length=12,flagellum_radius=0.1)
+    flag1 = bem.SlenderCoordinates(R[frame],v, flagellum_length=lf,flagellum_radius=0.1)
     
-    flag2 = bem.SlenderCoordinates(R2[frame],v2, flagellum_length=12,flagellum_radius=0.1)
+    flag2 = bem.SlenderCoordinates(R2[frame],v2, flagellum_length=lf,flagellum_radius=0.1)
 
     flagellum_1.append(flag1)
     flagellum_2.append(flag2)
