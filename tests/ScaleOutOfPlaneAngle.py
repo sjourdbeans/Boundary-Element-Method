@@ -30,7 +30,7 @@ mpl.rcParams["legend.fontsize"]=13
 
 
 
-chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=1280.mat"
+chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
 # chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/sphere_chlamy_N=320.mat"
 
 movie_data="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_T_avg_int.txt"
@@ -45,11 +45,10 @@ rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
                  [0,0,1]])
 
 R = coords.reshape(int(len(coords)/20),20,3)
-# R2 = coords_2.reshape(int(len(coords_2)/20),20,3)
-R2 = R.copy()
-R2[:,:,0] *= -1
-# R2[:,:,2] *= -1
-R[:,:,2] *= -1
+R2 = coords_2.reshape(int(len(coords_2)/20),20,3)
+# R2 = R.copy()
+# R2[:,:,0] *= -1
+# R[:,:,2] *= -1
 
 
 T1 = R[:, 1:,:] - R[:,:-1, :]
@@ -74,10 +73,10 @@ Nt= len(R)
 r1_map = np.zeros((factor*Nt, len(R[0])-1, 3))
 r2_map = np.zeros((factor*Nt, len(R2[0])-1, 3))
 
-scale_out_of_plane = 1
+scale_out_of_plane = 0#1
 new_flag_length = 12
 
-for time_frame in range(factor*Nt):
+for time_frame in range(Nt):
 
     frame = time_frame % Nt
 
@@ -106,7 +105,7 @@ V2 = (np.roll(r2_map, -1, axis=0) -
 flagellum_1 = []
 flagellum_2 = []
 
-N_frames = len(R)-1
+N_frames = len(R)#-1
 
 mesh = bem.Mesh(chlamy_path)
 # mesh.plot_mesh()
@@ -114,7 +113,7 @@ mesh = bem.Mesh(chlamy_path)
 # plt.show()
 
 # loop over all frames to create flagellum objects
-for frame in range(N_frames)[::3]:
+for frame in range(N_frames)[::2]:
     frame = frame % N_frames
 
     r1_map[frame]=(rotmat @ (r1_map[frame]-r1_map[frame][0]).T ).T +np.array([6,2,0])
@@ -142,7 +141,7 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/scale-out-of-plane/chlamy_free_3d_waveform_scale={scale_out_of_plane}_zero_vel.pkl", "wb") as f:
+with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/scale-out-of-plane/chlamy_free_3d_waveform_scale={scale_out_of_plane}_stepsize=2.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
 
