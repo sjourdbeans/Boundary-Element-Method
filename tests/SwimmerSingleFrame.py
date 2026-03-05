@@ -46,21 +46,30 @@ theta=np.pi/2
 rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
                  [np.sin(theta), np.cos(theta),0],
                  [0,0,1]])
+
+
+Rx = lambda angle: np.array([[1,0,0],
+                             [0, np.cos(angle), -np.sin(angle)],
+                             [0, np.sin(angle), np.cos(angle)]])
 lf=12
+
+
 
 R = coords.reshape(int(len(coords)/20),20,3)/7 * lf
 # R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *lf
-R[:,:,2]*=1.5
+R[:,:,2]*=0#1#1.5
+# R2[:,:,2]*=0#1#1.5
 
 R2 = R.copy()
 R2[:,:,0] *= -1
 R2[:,:,2] *= -1
 
 
+angle_x =4*np.pi/8# -5*np.pi/8
 
 def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
     # no shear flow
-    gamma_dot=-1
+    gamma_dot=-2
 
     U = np.zeros(3)
 
@@ -72,13 +81,16 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
     W = np.zeros(3)  
 
     W[0] = 0
-    W[1] = gamma_dot
-    W[2] = 0#-gamma_dot
+    W[1] = 0#gamma_dot
+    W[2] =-gamma_dot
 
     # Rate of strain tensor
-    E = gamma_dot/2*np.array([[0,0,1],
-                            [0,0,0],
-                            [1,0,0]])
+    E = gamma_dot/2*np.array([[0,1,0],
+                            [1,0,0],
+                            [0,0,0]])
+    
+    E=Rx(angle_x)@E@Rx(angle_x).T
+    W=Rx(angle_x)@W
     return U, W, E
 
 
@@ -86,8 +98,8 @@ mesh = bem.Mesh(chlamy_path)
 
 frame=18
 
-R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([12,2,0])
-R2[frame]=(rotmat @ (R2[frame]-R2[frame][0]).T  ).T+np.array([12,-2,0])
+R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
+R2[frame]=(rotmat @ (R2[frame]-R2[frame][0]).T  ).T+np.array([6,-2,0])
 
 flagellum_1 =[bem.SlenderCoordinates(R[frame],np.zeros_like(R[frame]), flagellum_length=lf,flagellum_radius=0.1)]
 flagellum_2 =[bem.SlenderCoordinates(R2[frame],np.zeros_like(R2[frame]), flagellum_length=lf,flagellum_radius=0.1)]
@@ -95,6 +107,8 @@ flagellum_2 =[bem.SlenderCoordinates(R2[frame],np.zeros_like(R2[frame]), flagell
 chlamy = bem.Swimmer(mesh, flagellum_1, flagellum_2)
 
 solution = chlamy.solve(find_flow, 1)
+
+# fig, ax, cbar = bem.plot_panels_stokes(mesh.panels, np.linalg.norm(solution.psi.reshape((chlamy.mesh.elements,3)),axis=1))
 
 f1 = solution.f1[0]
 f1 = f1.reshape(int(len(f1)/3),3)
@@ -104,11 +118,14 @@ f2 = solution.f2[0]
 f2 = f2.reshape(int(len(f2)/3),3)
 
 
-print(f"f1:{np.mean(f1,axis=0)}\n f2: {np.mean(f2,axis=0)}")
-print(f"Total force: {np.mean(f1 + f2,axis=0)}")
+# print(f"f1:{np.mean(f1,axis=0)}\n f2: {np.mean(f2,axis=0)}")
+# print(f"Total force: {np.mean(f1 + f2,axis=0)}")
 
-# print(f"f1:{np.sum(f1,axis=0)}\n f2: {np.sum(f2,axis=0)}")
-# print(f"Total force: {np.sum(f1,axis=0)+ np.sum(f2,axis=0)}")
+print(f"f1:{np.sum(f1,axis=0)}\n f2: {np.sum(f2,axis=0)}")
+print(f"Total force: {np.sum(f1+f2,axis=0)}")
+U,W,E = find_flow(0, np.zeros(3))
+print(f"f1 vorticity force: {np.dot(np.sum(f1,axis=0),W/np.linalg.norm(W))}")
+print(f"f2 vorticity force: {np.dot(np.sum(f2,axis=0),W/np.linalg.norm(W))}")
 
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(projection='3d')
@@ -144,7 +161,7 @@ def set_axes_equal(ax):
     limits = np.array([ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()])
     ranges = limits[:, 1] - limits[:, 0]
     centers = np.mean(limits, axis=1)
-    max_range = 10#ranges.max() 
+    max_range = 10*ranges.max() 
 
     ax.set_xlim3d([centers[0] - max_range, centers[0] + max_range])
     ax.set_ylim3d([centers[1] - max_range, centers[1] + max_range])
@@ -156,7 +173,7 @@ def set_axes_equal(ax):
 # ax.set_ylim(y_s.min(), y_s.max())
 # ax.set_zlim(z_s.min(), z_s.max())
 # ax.view_init(elev=20, azim=10)
-set_axes_equal(ax)
+# set_axes_equal(ax)
 
 
 if chlamy.mesh.is_mat:
@@ -165,12 +182,21 @@ else:
     panels = [chlamy.mesh.panels[k] for k in range(chlamy.mesh.elements)]
 
 
+
+values = -np.linalg.norm(solution.psi.reshape((chlamy.mesh.elements,3)),axis=1)
+cmap = plt.get_cmap('viridis')  # You can use any colormap you prefer
+norm = plt.Normalize(vmin=np.min(values), vmax=np.max(values))  # Normalize to the range of values
+
+# Apply the colormap to your values
+colors = cmap(norm(values))
+
+
 mesh_surf = Poly3DCollection(
     panels,
-    facecolor='lightgray',
+    facecolor=colors,
     edgecolor=(0, 0, 0, 0.5),
     linewidth=0.1,
-    alpha=0.3,
+    alpha=0.9,
     shade=False
 )
 # surf.set_edgecolor((0, 0, 0, 0.8))
@@ -240,6 +266,7 @@ flag_quivers["2"] = ax.quiver(
     color="b"
 )
 
+plt.axis('equal')
 # ---------------- camera ----------------
 # ax.view_init(azim=30- frame/8)
 plt.show()
