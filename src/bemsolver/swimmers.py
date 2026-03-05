@@ -625,7 +625,11 @@ class FreeSwimmer(BaseSystem):
         """
 
         pitch, yaw, roll = initial_orientation 
-        q = pyr_to_quat(pitch, yaw, roll)
+
+
+        r = R.from_euler('xzy', [roll, yaw, pitch])
+        q = r.as_quat(scalar_first=True)
+        # q = pyr_to_quat(pitch, yaw, roll)
 
         # Make the function that finds the flow an attribute of FreeSwimmer
         self.flow_function = flow_function
