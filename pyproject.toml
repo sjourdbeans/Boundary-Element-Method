@@ -16,6 +16,7 @@ dependencies = [
     "imageio",
     "numba",
     "gmsh",
+    "pyvista",
 
 ]
 
