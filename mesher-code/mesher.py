@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.io import savemat
-import trimesh
 
 # -------- utilities --------
 def normalize_rows(v):
