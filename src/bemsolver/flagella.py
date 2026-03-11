@@ -1,7 +1,5 @@
 import numpy as np
-from typing import Optional
 from dataclasses import dataclass, field
-from scipy.linalg import lu_factor, lu_solve
 
 from .utils import U_colloc, skew_stack
 from .kernels import stokeslet, tangential

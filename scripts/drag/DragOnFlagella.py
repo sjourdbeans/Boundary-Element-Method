@@ -4,7 +4,6 @@ import numpy as np
 import os
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-import imageio.v2 as imageio
 
 
 import matplotlib as mpl

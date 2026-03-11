@@ -1,5 +1,4 @@
 import bemsolver as bem
-import importlib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl

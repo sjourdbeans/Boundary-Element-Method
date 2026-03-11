@@ -1,5 +1,4 @@
 from scipy.io import loadmat
-import warnings
 from dataclasses import dataclass, field
 import numpy as np
 import bemsolver as BEM
