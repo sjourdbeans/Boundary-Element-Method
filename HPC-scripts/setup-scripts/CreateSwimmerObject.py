@@ -81,8 +81,8 @@ if rank == 0:
                 R2f, v2f, flagellum_length=lf, flagellum_radius=0.2
             )
 
-chlamy = bem.FreeSwimmer(mesh,
-                        flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
+    chlamy = bem.FreeSwimmer(mesh,
+                            flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
 
 # chlamy = bem.Swimmer(mesh,
 #                     flagellum_1=flagellum_1,flagellum_2=flagellum_2)
@@ -92,8 +92,8 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open(savepath, "wb") as f:
-    pickle.dump(chlamy, f)
+    with open(savepath, "wb") as f:
+        pickle.dump(chlamy, f)
 
 
 # solution = chlamy.RBM_over_time(dt, find_flow)
