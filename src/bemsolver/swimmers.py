@@ -384,8 +384,6 @@ class FreeSwimmer(BaseSystem):
         Defaults to None if only one flagellum is present.
     viscosity : float
         Viscosity of the surrounding fluid in Pa.s (default is water at room temperature 1e-3).
-    use_mpi   : bool
-        Boolean to enable parallel computing using MPI (default set to False)
 
     Methods
     -------
@@ -450,7 +448,6 @@ class FreeSwimmer(BaseSystem):
     flagellum_2     : Iterable[SlenderBody]     = field(default_factory=lambda: None)
 
     viscosity       :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
-    use_mpi         :bool  = field(default_factory=lambda: False)  # Use mpi for parallel computing 
 
 
 
@@ -473,10 +470,7 @@ class FreeSwimmer(BaseSystem):
         super().__post_init__()
 
         # Populate the grand mobility matrix of all frames
-        if self.use_mpi:
-            self.populate_grand_mobility_matrix_parallel()
-        else:
-            self.populate_grand_mobility_matrix() 
+        self.populate_grand_mobility_matrix() 
 
 
     def populate_grand_mobility_matrix(self):
@@ -595,160 +589,6 @@ class FreeSwimmer(BaseSystem):
                 self.LU_matrix[i], self.piv_vector[i] = lu_factor(swimmer_matrix)
 
         print(f"Loaded {len(self.flagellum_1)} frames with {self.flagellum_1[0].Nf} elements!")
-
-
-
-    def populate_grand_mobility_matrix_parallel(self, broadcast_to_all: bool = False):
-        """
-        Populate the grand mobility matrix for all frames using MPI.
-
-        Each MPI rank computes the LU factorization for a subset of frames.
-        The results are gathered on rank 0 and stored in self.LU_matrix and
-        self.piv_vector.
-
-        Parameters
-        ----------
-        broadcast_to_all : bool, optional
-            If True, broadcast the completed LU_matrix and piv_vector from rank 0
-            to all ranks. This increases memory use, but makes the populated data
-            available on every rank.
-        """
-        from mpi4py import MPI
-
-
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
-
-        # ---------------------------------
-        # Cell-body quantities: needed on every rank
-        # ---------------------------------
-        Mh, _, _, _ = self.construct_mobility_matrix()
-        Mh = (1 / self.viscosity) * Mh
-        r, _ = np.shape(Mh)
-
-        V_h = np.tile(np.eye(3), int(r / 3)).T
-        A_h = self.r_cross_matrix
-        F_h = self.surface_matrix
-        T_h = self.torque_matrix
-
-        n_frames = len(self.flagellum_1)
-        local_indices = np.array_split(np.arange(n_frames), size)[rank]
-
-        local_results = []
-
-        # ---------------------------------
-        # One flagellum
-        # ---------------------------------
-        if self.flagellum_2 is None:
-            if rank == 0:
-                print("Populating flagellum")
-
-            for i in local_indices:
-                frame = self.flagellum_1[i]
-
-                # Interaction matrix of the flagellum acting on the head
-                Mf1h = (1 / self.viscosity) * frame.calc_interaction(self.mesh.centroids)
-
-                # Interaction matrix of the head acting on the flagellum
-                Mhf1 = (1 / self.viscosity) * FlowStokes(self.mesh, frame.r).MATRIX
-
-                # Mobility matrix of the flagellum
-                Mf1 = (1 / self.viscosity) * frame.construct_mobility_matrix()
-
-                # RBM matrices
-                V_f1 = np.tile(np.eye(3), int(len(Mf1) / 3)).T
-                A_f1 = frame.calc_r_cross_matrix(self.mesh.center)
-
-                # Force / torque constraints
-                F_f1 = V_f1.T
-                T_f1 = A_f1.T
-
-                swimmer_matrix = np.block([
-                    [Mh,   Mf1h,  -V_h,   -A_h],
-                    [Mhf1, Mf1,   -V_f1,  -A_f1],
-                    [F_h,  F_f1,  np.zeros((3, 6))],
-                    [T_h,  T_f1,  np.zeros((3, 6))]
-                ])
-
-                LU, piv = lu_factor(swimmer_matrix)
-                local_results.append((i, LU, piv))
-
-        # ---------------------------------
-        # Two flagella
-        # ---------------------------------
-        else:
-            if rank == 0:
-                print("Populating both flagella")
-
-            for i in local_indices:
-                frame_1 = self.flagellum_1[i]
-                frame_2 = self.flagellum_2[i]
-
-                # ============ Cell body =============
-                Mf1h = (1 / self.viscosity) * frame_1.calc_interaction(self.mesh.centroids)
-                Mf2h = (1 / self.viscosity) * frame_2.calc_interaction(self.mesh.centroids)
-
-                # ========== Flagellum 1 =============
-                Mhf1 = (1 / self.viscosity) * FlowStokes(self.mesh, frame_1.r).MATRIX
-                Mf1 = (1 / self.viscosity) * frame_1.construct_mobility_matrix()
-                Mf2f1 = (1 / self.viscosity) * frame_2.calc_interaction(frame_1.r)
-
-                # ========== Flagellum 2 =============
-                Mhf2 = (1 / self.viscosity) * FlowStokes(self.mesh, frame_2.r).MATRIX
-                Mf1f2 = (1 / self.viscosity) * frame_1.calc_interaction(frame_2.r)
-                Mf2 = (1 / self.viscosity) * frame_2.construct_mobility_matrix()
-
-                # RBM matrices
-                V_f1 = np.tile(np.eye(3), int(len(Mf1) / 3)).T
-                V_f2 = np.tile(np.eye(3), int(len(Mf2) / 3)).T
-
-                A_f1 = frame_1.calc_r_cross_matrix(self.mesh.center)
-                A_f2 = frame_2.calc_r_cross_matrix(self.mesh.center)
-
-                # Force / torque constraints
-                F_f1 = V_f1.T
-                F_f2 = V_f2.T
-
-                T_f1 = A_f1.T
-                T_f2 = A_f2.T
-
-                swimmer_matrix = np.block([
-                    [Mh,   Mf1h,  Mf2h,    -V_h,   -A_h],
-                    [Mhf1, Mf1,   Mf2f1,   -V_f1,  -A_f1],
-                    [Mhf2, Mf1f2, Mf2,     -V_f2,  -A_f2],
-                    [F_h,  F_f1,  F_f2,    np.zeros((3, 6))],
-                    [T_h,  T_f1,  T_f2,    np.zeros((3, 6))],
-                ])
-
-                LU, piv = lu_factor(swimmer_matrix)
-                local_results.append((i, LU, piv))
-
-        # ---------------------------------
-        # Gather all local results on rank 0
-        # ---------------------------------
-        all_results = comm.gather(local_results, root=0)
-
-        if rank == 0:
-            # initialize storage on root
-            self.LU_matrix = [None] * n_frames
-            self.piv_vector = [None] * n_frames
-
-            for chunk in all_results:
-                for i, LU, piv in chunk:
-                    self.LU_matrix[i] = LU
-                    self.piv_vector[i] = piv
-
-            print(f"Loaded {len(self.flagellum_1)} frames with {self.flagellum_1[0].Nf} elements!")
-
-        # ---------------------------------
-        # Optional: broadcast completed data to all ranks
-        # ---------------------------------
-        if broadcast_to_all:
-            self.LU_matrix = comm.bcast(self.LU_matrix if rank == 0 else None, root=0)
-            self.piv_vector = comm.bcast(self.piv_vector if rank == 0 else None, root=0)
-
-        comm.Barrier()
 
 
     def RBM_over_time(self,  
