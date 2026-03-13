@@ -1,7 +1,7 @@
 import bemsolver as bem
 import numpy as np
 import pickle
-from mpi4py import MPI
+
 
 
 
@@ -44,45 +44,36 @@ V2 = (np.roll(R2, -1, axis=0) -
 
 
 
+flagellum_1 = []
+flagellum_2 = []
 
 N_frames = len(R)
 
 mesh = bem.Mesh(chlamy_path)
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+# loop over all frames to create flagellum objects
+for frame in range(N_frames):
+    frame = frame % N_frames
 
-local_frames = np.array_split(np.arange(N_frames), size)[rank]
+    R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
 
-local_data = []
+    R2[frame]=(rotmat @ (R2[frame]-R2[frame][0]).T  ).T+np.array([6,-2,0])
 
-for frame in local_frames:
-    Rf = (rotmat @ (R[frame] - R[frame][0]).T).T + np.array([6, 2, 0])
-    R2f = (rotmat @ (R2[frame] - R2[frame][0]).T).T + np.array([6, -2, 0])
+    v= (rotmat @ V[frame].T ).T
+    v2=(rotmat @ V2[frame].T).T
 
-    vf = (rotmat @ V[frame].T).T
-    v2f = (rotmat @ V2[frame].T).T
+    flag1 = bem.SlenderCoordinates(R[frame],v, flagellum_length=lf,flagellum_radius=0.2)
+    
+    flag2 = bem.SlenderCoordinates(R2[frame],v2, flagellum_length=lf,flagellum_radius=0.2)
 
-    local_data.append((frame, Rf, vf, R2f, v2f))
+    flagellum_1.append(flag1)
+    flagellum_2.append(flag2)
 
-all_data = comm.gather(local_data, root=0)
+# ===================Create swimmer object=====================
 
-if rank == 0:
-    flagellum_1 = [None] * N_frames
-    flagellum_2 = [None] * N_frames
 
-    for chunk in all_data:
-        for frame, Rf, vf, R2f, v2f in chunk:
-            flagellum_1[frame] = bem.SlenderCoordinates(
-                Rf, vf, flagellum_length=lf, flagellum_radius=0.2
-            )
-            flagellum_2[frame] = bem.SlenderCoordinates(
-                R2f, v2f, flagellum_length=lf, flagellum_radius=0.2
-            )
-
-    chlamy = bem.FreeSwimmer(mesh,
-                            flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
+chlamy = bem.FreeSwimmer(mesh,
+                        flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
 
 # chlamy = bem.Swimmer(mesh,
 #                     flagellum_1=flagellum_1,flagellum_2=flagellum_2)
@@ -92,8 +83,8 @@ if rank == 0:
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-    with open(savepath, "wb") as f:
-        pickle.dump(chlamy, f)
+with open(savepath, "wb") as f:
+    pickle.dump(chlamy, f)
 
 
 # solution = chlamy.RBM_over_time(dt, find_flow)
