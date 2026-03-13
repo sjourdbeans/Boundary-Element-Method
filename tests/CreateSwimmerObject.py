@@ -98,15 +98,18 @@ for frame in range(N_frames):
 # ===================Create swimmer object=====================
 
 
-chlamy = bem.FreeSwimmer(mesh,
-                        flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
+# chlamy = bem.FreeSwimmer(mesh,
+#                         flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
+
+chlamy = bem.Swimmer(mesh,
+                    flagellum_1=flagellum_1,flagellum_2=flagellum_2)
 # =============================================================
 
 
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl", "wb") as f:
+with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/wilson-bees-3d/chlamy_free_3d_waveform.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
 
