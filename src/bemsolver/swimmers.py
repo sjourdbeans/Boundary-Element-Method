@@ -473,7 +473,10 @@ class FreeSwimmer(BaseSystem):
         super().__post_init__()
 
         # Populate the grand mobility matrix of all frames
-        self.populate_grand_mobility_matrix() 
+        if self.use_mpi:
+            self.populate_grand_mobility_matrix_parallel()
+        else:
+            self.populate_grand_mobility_matrix() 
 
 
     def populate_grand_mobility_matrix(self):
