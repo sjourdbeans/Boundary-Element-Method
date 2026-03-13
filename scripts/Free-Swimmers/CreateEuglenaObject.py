@@ -31,7 +31,9 @@ mpl.rcParams["legend.fontsize"]=13
 
 
 # waveformfile      = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Euglena/Euglena_waveform_quarter_frames_50_periods.mat")
-waveformfile      =loadmat("/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Euglena-Antonio/Figure 2 - Source Data & Code/flagellum.mat")
+# waveformfile      =loadmat("/home/sjoerd-buitjes/University/Master-Thesis/Paper-data/Euglena-Antonio/Figure 2 - Source Data & Code/flagellum.mat")
+
+waveformfile = loadmat("/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Euglena/flagellum.mat")
 euglena_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Euglena/Euglena_Rossi_N=320.mat"
 
 
