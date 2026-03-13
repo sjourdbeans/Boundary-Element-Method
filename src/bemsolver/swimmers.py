@@ -128,6 +128,8 @@ class Swimmer(BaseSystem):
         # Populate the mobility matrices and store the LU decomposition
         self.populate_mobility_matrix()
 
+        self.N_frames=N_frames
+
     
     def populate_mobility_matrix(self):
         """
