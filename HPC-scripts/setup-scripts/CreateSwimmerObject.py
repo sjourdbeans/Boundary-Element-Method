@@ -9,7 +9,7 @@ import pickle
 chlamy_path       = "/scratch/sbuitjes/meshes/chlamy/chlamy_N=1280.mat"
 
 movie_data="/home/sbuitjes/code/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_T_avg_int.txt"
-movie_data_2="/home/sbuitjes/code/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_C_avg_int.txt"
+movie_data_2="/home/sbuitjes/code/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_C_avg_int.txt"
 coords =np.loadtxt(movie_data)
 coords_2 =np.loadtxt(movie_data_2)
 
