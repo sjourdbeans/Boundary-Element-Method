@@ -8,7 +8,8 @@ import pyvista as pv
 # =========================
 # User settings
 # =========================
-data_dir = Path("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/chlamy_vtk_export")  # change this
+# data_dir = Path("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/chlamy_vtk_export")  # change this
+data_dir = Path("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/velocity-fields/Flowfield_Nx-Ny-Nz=51-51-51_vtk_export")
 frames_dir = data_dir / "frames"
 geom_dir = data_dir / "geometry"
 
@@ -21,8 +22,8 @@ seed_plane = pv.Plane(
     direction=(-1.0, 0.0, 0.0),
     i_size=40.0,
     j_size=40.0,
-    i_resolution=20,
-    j_resolution=20,
+    i_resolution=30,
+    j_resolution=30,
 )
 
 GLYPH_RATE = (2, 2, 2)
@@ -95,6 +96,7 @@ def redraw():
     grid = pv.read(frame_file(frame))
     flag1 = pv.read(flag1_file(frame))
     flag2 = pv.read(flag2_file(frame))
+    grid["omega_z"] = grid["vorticity"][:, 2]
 
     # -------------------------
     # Q-criterion isosurface
@@ -159,14 +161,17 @@ def redraw():
         interpolator_type="cell",
     )
 
+    streamlines["omega_z"] = streamlines["vorticity"][:, 2]
+
     if streamlines.n_cells > 0:
         stream_tube = streamlines.tube(radius=STREAM_RADIUS)
         if stream_tube.n_points > 0:
             state["stream_actor"] = pl.add_mesh(
                 stream_tube,
-                scalars="vort_mag",
+                scalars="omega_z",
                 cmap="RdBu_r",
                 opacity=0.8,
+                clim=[-5,5]
             )
 
     # -------------------------
