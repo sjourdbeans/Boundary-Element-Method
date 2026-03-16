@@ -11,6 +11,8 @@ import bemsolver as bem
 
 
 # ============ Simulation Setup =============
+elements = 320
+
 shear_rate = 0.0
 dt = 400e-6
 n_periods = 300
@@ -30,8 +32,8 @@ initial_conditions = np.column_stack([
 n_sims = len(initial_conditions)
 
 
-fileswimmer = "/scratch/sbuitjes/swimmer_objects/chlamy/chlamy-3d/chlamy_free_1280.pkl"
-outdir = Path(f"/scratch/sbuitjes/simulation_results/trajectory-sims/chlamy/chlamy-3d/shear={round(shear_rate,1)}_N={n_sims}_periods_{n_periods}")
+fileswimmer = f"/scratch/sbuitjes/swimmer_objects/chlamy/chlamy-3d/chlamy_free_{elements}.pkl"
+outdir = Path(f"/scratch/sbuitjes/simulation_results/trajectory-sims/chlamy/chlamy-3d/mesh={elements}_shear={round(shear_rate,1)}_N={n_sims}_periods_{n_periods}")
 
 outdir.mkdir(parents=True, exist_ok=True)
 
@@ -106,12 +108,18 @@ with h5py.File(rank_file, "w") as h5:
         grp = h5.create_group(f"sim_{sim_idx:05d}")
         grp.attrs["sim_index"] = int(sim_idx)
 
+        grp.attrs["complete"] = False
+
         grp.create_dataset("initial_orientation", data=np.asarray(cond, dtype=save_dtype))
         grp.create_dataset("time", data=np.asarray(sol.time, dtype=save_dtype))
         grp.create_dataset("X", data=np.asarray(sol.X, dtype=save_dtype), compression="gzip")
         grp.create_dataset("quaternions", data=np.asarray(sol.quaternions, dtype=save_dtype), compression="gzip")
         grp.create_dataset("u", data=np.asarray(sol.u, dtype=save_dtype), compression="gzip")
         grp.create_dataset("omega", data=np.asarray(sol.omega, dtype=save_dtype), compression="gzip")
+
+
+        grp.attrs["complete"] = True
+        h5.flush()
 
         print(f"Rank {rank}: finished sim {sim_idx}")
 
