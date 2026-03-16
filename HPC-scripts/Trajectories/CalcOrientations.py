@@ -1,22 +1,3 @@
-# from mpi4py import MPI
-# import numpy as np
-# n_sims =10000
-# # =========================================================
-# # MPI setup
-# # =========================================================
-# comm = MPI.COMM_WORLD
-# rank = comm.Get_rank()
-# size = comm.Get_size()
-
-# local_indices = np.array_split(np.arange(n_sims), size)[rank]
-
-# if rank == 0:
-#     print(f"Total simulations: {n_sims}")
-#     print(f"MPI ranks: {size}")
-#     # print(f"Output directory: {outdir}")
-
-# print(f"Rank {rank}: handling simulation indices {local_indices}")
-
 
 import os
 from pathlib import Path
