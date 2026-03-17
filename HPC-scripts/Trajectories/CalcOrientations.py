@@ -9,26 +9,34 @@ from mpi4py import MPI
 import copy
 import bemsolver as bem
 
+def random_quaternion():
+    u1 = np.random.rand()
+    u2 = np.random.rand()
+    u3 = np.random.rand()
+
+    # Use a standard method to generate a random quaternion
+    q = np.array([
+        np.sqrt(1 - u1) * np.sin(2 * np.pi * u2),
+        np.sqrt(1 - u1) * np.cos(2 * np.pi * u2),
+        np.sqrt(u1) * np.sin(2 * np.pi * u3),
+        np.sqrt(u1) * np.cos(2 * np.pi * u3)
+    ])
+    return q
+
+
 
 # ============ Simulation Setup =============
 elements = 320
 
 shear_rate = 0.0
 dt = 400e-6
-n_periods = 300
+n_periods = 72
 save_dtype = np.float32
 
+# Create N random quaternions
+N_conditions = 10000
+initial_conditions = np.array([random_quaternion() for _ in range(N_conditions)])
 
-p_arr = np.linspace(-np.pi / 3, np.pi / 3, 2)
-y_arr = np.linspace(-np.pi / 4, np.pi / 4, 2)
-r_arr = np.linspace(-np.pi / 4, np.pi / 4, 2)
-
-p_mesh, y_mesh, r_mesh = np.meshgrid(p_arr, y_arr, r_arr, indexing="ij")
-initial_conditions = np.column_stack([
-    p_mesh.ravel(),
-    y_mesh.ravel(),
-    r_mesh.ravel(),
-])
 n_sims = len(initial_conditions)
 
 
@@ -102,7 +110,7 @@ with h5py.File(rank_file, "w") as h5:
             dt,
             t_end,
             find_flow,
-            initial_orientation=cond,
+            initial_quaternion=cond,
         )
 
         grp = h5.create_group(f"sim_{sim_idx:05d}")
