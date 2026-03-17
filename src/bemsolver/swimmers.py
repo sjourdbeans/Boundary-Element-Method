@@ -597,7 +597,8 @@ class FreeSwimmer(BaseSystem):
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0]),
-                      gravity_direction  :np.ndarray = np.array([0,0,-1])
+                      gravity_direction  :np.ndarray = np.array([0,0,-1]),
+                      initial_quaternion :np.ndarray = None
                       ) -> Solution:
         """
         Solve the mobility problem over time given a function that provides the boundary conditions.
@@ -620,6 +621,11 @@ class FreeSwimmer(BaseSystem):
                               Initial pitch, yaw, and roll of the swimmer in radians
         gravity_direction    : numpy array
                               Direction of gravity in the lab frame (standard set to -z)
+        initial_quaternion   : numpy array 
+                              Initial orientation as a quaternion [w, x, y, z]. standard set to None.
+                              Quaternions are less intuitive but are better to use to avoid gimbal lock.
+                              Better to use for varying initial conditions as random quaternions give a more uniform distribution
+                              on the unit sphere compared to euler angles.
         Returns
         -------
         solution          : Solution
@@ -630,7 +636,11 @@ class FreeSwimmer(BaseSystem):
 
 
         r = R.from_euler('xzy', [roll, yaw, pitch])
-        q = r.as_quat(scalar_first=True)
+        if initial_quaternion is None:
+            q = r.as_quat(scalar_first=True)
+        else:
+            q = initial_quaternion
+
         # q = pyr_to_quat(pitch, yaw, roll)
 
         # Make the function that finds the flow an attribute of FreeSwimmer
