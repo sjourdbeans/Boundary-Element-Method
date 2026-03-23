@@ -136,11 +136,7 @@ class MobilityProblem(BaseSystem):
     mesh                : Mesh instance
                           The mesh to be used is a bemsolver.Mesh python object.
     flow_function       : Callable representing the flowfield.
-                          flow_function should be a function which returns U, W, and E for a given position x
-    initial_position    : (optional) numpy array
-                          Initial position of the particle [x, y, z]
-    initial_orientation : (optional) numpy array default is [0, 0, 0]
-                          Initial orientation unit vector of the particle [p_x, p_y, p_z] default is [1, 0, 0]
+                          flow_function should be a function which returns U, W, and E for a given time t and position x
     viscosity           : (optional) float default is 1e-3
                           Viscosity of the surrounding fluid in Pa.s (default is water at room temperature)
     particle_velocity   : (optional) float or integer default is 0
