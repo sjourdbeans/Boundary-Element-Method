@@ -352,7 +352,7 @@ class MobilityProblem(BaseSystem):
 
 
         # Loop through time
-        for frame_index in enumerate(total_frames-1):   
+        for frame_index in range(total_frames-1):   
             if frame_index%100 == 0:
                 print(f"Computing frame {frame_index} out of {total_frames}")
 
