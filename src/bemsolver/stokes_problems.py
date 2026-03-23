@@ -238,8 +238,8 @@ class MobilityProblem(BaseSystem):
     
 
     def RBM_over_time(self,
-                      T_max:int|float,
                       dt    :float,
+                      T_max:int|float,
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0]),
@@ -253,10 +253,10 @@ class MobilityProblem(BaseSystem):
 
         Parameters
         ----------
-        T_max               : integer or float
-                              Set the maximum time to be evaluated
         dt                  : float
                               Timestep for the simulation
+        T_max               : integer or float
+                              Set the maximum time to be evaluated
         flow_function       : Callable
                               Function that returns U, W, and E for a given position x
         initial_position    : numpy array
