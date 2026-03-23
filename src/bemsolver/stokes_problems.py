@@ -195,7 +195,11 @@ class MobilityProblem(BaseSystem):
     viscosity           :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
     particle_velocity   :float|int = field(default_factory=lambda: 0)
     
-
+    def __post_init__(self):
+        super().__post_init__()
+    
+        # Construct the grand mobility matrix
+        self.construct_grand_mobility_matrix()
 
 
 
@@ -239,7 +243,7 @@ class MobilityProblem(BaseSystem):
 
     def RBM_over_time(self,
                       dt    :float,
-                      T_max:int|float,
+                      t_end :int|float,
                       flow_function      :Callable[[float,np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0]),
@@ -255,7 +259,7 @@ class MobilityProblem(BaseSystem):
         ----------
         dt                  : float
                               Timestep for the simulation
-        T_max               : integer or float
+        t_end               : integer or float
                               Set the maximum time to be evaluated
         flow_function       : Callable
                               Function that returns U, W, and E for a given position x
@@ -307,65 +311,69 @@ class MobilityProblem(BaseSystem):
         # set gravity vector in lab frame
         self.gravity = 9.8 * gravity_direction / np.linalg.norm(gravity_direction)
 
-        # Construct the grand mobility matrix
-        self.construct_grand_mobility_matrix()
-        
+        self.dt = dt
+
+        total_frames = int(round(t_end / self.dt))
+
         # Initialise the solution file (dataclass)
-        solution = Solution()        
+        self.solution = Solution()        
         
-        solution.time                  = np.arange(0, T_max+dt, dt)
-        solution.psi                   = np.zeros((len(solution.time), 3*self.mesh.elements))
-        solution.u                     = np.zeros((len(solution.time), 3))
-        solution.omega                 = np.zeros((len(solution.time), 3))
-        solution.X                     = np.zeros((len(solution.time), 6))
-        solution.rotation_matrices     = np.zeros((len(solution.time), 3, 3))
-        solution.quaternions           = np.zeros((len(solution.time), 4))
+        self.solution.time                  = np.zeros( total_frames )
+        self.solution.psi                   = np.zeros((total_frames, 3*self.mesh.elements))
+        self.solution.u                     = np.zeros((total_frames, 3))
+        self.solution.omega                 = np.zeros((total_frames, 3))
+        self.solution.X                     = np.zeros((total_frames, 6))
+        self.solution.rotation_matrices     = np.zeros((total_frames, 3, 3))
+        self.solution.quaternions           = np.zeros((total_frames, 4))
 
         
         
         # Set initial quaternion
-        solution.quaternions[0]        = q
+        self.solution.quaternions[0]        = q
 
         # Find initial cartesian rotation matrix from quaternion
         Q_0                                = R.from_quat(q, scalar_first=True).as_matrix()
-        solution.rotation_matrices[0] = Q_0
+        self.solution.rotation_matrices[0] = Q_0
 
          # Set initial condition vector and save it
         X_0 = np.hstack((initial_position, Q_0[:,0]))        
-        solution.X[0] = X_0
+        self.solution.X[0] = X_0
 
         # Unpack initial state
         x, p = X_0[:3], X_0[3:]
 
         # Calculate the singularity distribution, translational-, and angular velocity for the initial state
-        self.psi, self.u, self.omega = self.calc_RBM(x, q, solution.time[0])
+        psi, u, omega = self.calc_RBM(x, q, self.solution.time[0])
 
         # Set initial values to solution file
-        solution.psi[0]   = self.psi
-        solution.u[0]     = Q_0 @ self.u
-        solution.omega[0] = Q_0 @ self.omega
+        self.solution.psi[0]   = psi
+        self.solution.u[0]     = Q_0 @ u
+        self.solution.omega[0] = Q_0 @ omega
 
 
         # Loop through time
-        for k, t in enumerate(solution.time[:-1]):   
+        for frame_index in enumerate(total_frames-1):   
+            if frame_index%100 == 0:
+                print(f"Computing frame {frame_index} out of {total_frames}")
 
+            self.solution.time[frame_index + 1] = (frame_index + 1) * dt
             # Calculate the next timestep
-            x, q, p, Q, psi, u, omega = self.solve_RBM(x, q, t, dt)
+            x, q, p, Q, psi, u, omega = self.solve_RBM(x, q, (frame_index) * dt, dt)
 
             # Save values to solution file
-            solution.psi[k+1]   = psi
+            self.solution.psi[frame_index+1]   = psi
 
             # Rotate (Angular velocity to lab frame)
-            solution.u[k+1]     = Q @ u
-            solution.omega[k+1] = Q @ omega
+            self.solution.u[frame_index+1]     = Q @ u
+            self.solution.omega[frame_index+1] = Q @ omega
 
-            solution.X[k+1,:3]   = x
-            solution.X[k+1, 3:]  = p
+            self.solution.X[frame_index+1,:3]   = x
+            self.solution.X[frame_index+1, 3:]  = p
 
-            solution.quaternions[k+1]       = q  
-            solution.rotation_matrices[k+1] = Q
+            self.solution.quaternions[frame_index+1]       = q  
+            self.solution.rotation_matrices[frame_index+1] = Q
 
-        return solution
+        return self.solution
 
 
     
