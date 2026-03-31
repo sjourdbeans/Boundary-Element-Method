@@ -382,8 +382,7 @@ class FreeSwimmer(BaseSystem):
     flagellum_2 : Iterable[SlenderBody], optional
         An iterable of `SlenderBody` objects representing the second flagellum across multiple frames. 
         Defaults to None if only one flagellum is present.
-    viscosity : float
-        Viscosity of the surrounding fluid in Pa.s (default is water at room temperature 1e-3).
+    
 
     Methods
     -------
@@ -447,9 +446,6 @@ class FreeSwimmer(BaseSystem):
 
     flagellum_2     : Iterable[SlenderBody]     = field(default_factory=lambda: None)
 
-    viscosity       :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
-
-
 
 
 
@@ -482,7 +478,7 @@ class FreeSwimmer(BaseSystem):
 
         # Calculate mobility matrix of the cell body
         Mh,_,_,_  =  self.construct_mobility_matrix()
-        Mh = (1/self.viscosity) * Mh   
+        Mh =  Mh   
         r, c      = np.shape(Mh)     
 
 
@@ -491,12 +487,12 @@ class FreeSwimmer(BaseSystem):
             for i, frame in enumerate(self.flagellum_1):
                 
                 # Interaction matrix of the flagellum acting on the head (cell body) 
-                Mf1h = (1/self.viscosity) * frame.calc_interaction(self.mesh.centroids)
+                Mf1h = frame.calc_interaction(self.mesh.centroids)
 
                 # Interaction matrix of the cell body acting on the flagellum
-                Mhf1 = (1/self.viscosity) * FlowStokes(self.mesh, frame.r).MATRIX
+                Mhf1 =  FlowStokes(self.mesh, frame.r).MATRIX
                 # Mobility matrix of the flagellum
-                Mf1  = (1/self.viscosity) * frame.construct_mobility_matrix()
+                Mf1  =  frame.construct_mobility_matrix()
                 
                 # Rigid Body Motion (RBM) terms: U_rbm = U + omega x r = V @ U + A @ omega
                 # NOTE: the velocity of the fluid on the surface due to RBM is opposite in direction (v_rbm=-u_rbm)
@@ -534,24 +530,24 @@ class FreeSwimmer(BaseSystem):
 
                 #============Cell Body==============
                 # Interaction matrices of the flagella acting on the cell body
-                Mf1h = (1/self.viscosity) * frame_1.calc_interaction(self.mesh.centroids)
-                Mf2h = (1/self.viscosity) * frame_2.calc_interaction(self.mesh.centroids)
+                Mf1h =  frame_1.calc_interaction(self.mesh.centroids)
+                Mf2h =  frame_2.calc_interaction(self.mesh.centroids)
 
                 #==========Flagellum 1==============
                 # Interaction matrix of the cell body acting on flagellum 1, 
-                Mhf1 = (1/self.viscosity) * FlowStokes(self.mesh, frame_1.r).MATRIX
+                Mhf1 =  FlowStokes(self.mesh, frame_1.r).MATRIX
                 # Mobility matrix of flagellum 1 
-                Mf1  = (1/self.viscosity) * frame_1.construct_mobility_matrix()
+                Mf1  =  frame_1.construct_mobility_matrix()
                 # Interaction matrix of flagellum 2 acting on flagellum 1
-                Mf2f1 = (1/self.viscosity) * frame_2.calc_interaction(frame_1.r)
+                Mf2f1 = frame_2.calc_interaction(frame_1.r)
 
                 #==========Flagellum 2==============
                 # Interaction matrix of the cell body acting on flagellum 2
-                Mhf2 = (1/self.viscosity) * FlowStokes(self.mesh, frame_2.r).MATRIX  
+                Mhf2 =  FlowStokes(self.mesh, frame_2.r).MATRIX  
                 # Interaction matrix of flagellum 1 acting on flagellum 2              
-                Mf1f2 = (1/self.viscosity) * frame_1.calc_interaction(frame_2.r)
+                Mf1f2 =  frame_1.calc_interaction(frame_2.r)
                 # Mobility matrix of flagellum 2
-                Mf2  = (1/self.viscosity) * frame_2.construct_mobility_matrix()
+                Mf2  =   frame_2.construct_mobility_matrix()
                 
                 # Rigid Body Motion (RBM) terms: U_rbm = U + omega x r = V @ U + A @ omega
                 # NOTE: the velocity of the fluid on the surface due to RBM is opposite in direction (v_rbm=-u_rbm)
@@ -598,7 +594,8 @@ class FreeSwimmer(BaseSystem):
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0]),
                       gravity_direction  :np.ndarray = np.array([0,0,-1]),
-                      initial_quaternion :np.ndarray = None
+                      initial_quaternion :np.ndarray = None,
+                      viscosity          :float = 1e-3
                       ) -> Solution:
         """
         Solve the mobility problem over time given a function that provides the boundary conditions.
@@ -626,6 +623,9 @@ class FreeSwimmer(BaseSystem):
                               Quaternions are less intuitive but are better to use to avoid gimbal lock.
                               Better to use for varying initial conditions as random quaternions give a more uniform distribution
                               on the unit sphere compared to euler angles.
+        viscosity           : float
+                              Viscosity of the surrounding fluid in Pa.s (default is water at room temperature).
+                              Only necessary if particle is bouyant or has a center of mass offset.
         Returns
         -------
         solution          : Solution
@@ -648,6 +648,7 @@ class FreeSwimmer(BaseSystem):
 
         # set gravity vector in lab frame
         self.gravity = 9.8 * gravity_direction / np.linalg.norm(gravity_direction)
+        self.viscosity = viscosity
 
         # Make dt an attribute
         self.dt = dt
@@ -903,12 +904,12 @@ class FreeSwimmer(BaseSystem):
 
         V = self.mesh.parameters["volume"] * 1e-18 # Convert to m^3
 
-        # Calculate gravitational force in body frame
-        F_gravity = V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
-        # print(F_gravity)
-        T_gravity = -  V *  (self.mesh.parameters["medium_rho"] 
+        # Calculate gravitational force in body frame (include viscosity since psi, f1, and f2 are force / viscosity)
+        F_gravity = (1/self.viscosity) * V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
+
+        T_gravity = - (1/self.viscosity) * V *  (self.mesh.parameters["medium_rho"] 
                                       + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
-        # T_gravity = np.cross(np.array([self.mesh.parameters["COM_offset"]*1000 , 0, 0]), F_gravity)  #Convert to pNum (10^-6 term)
+
         RHS = np.hstack((-rhs, F_gravity, T_gravity))
 
         # No slip, so solve for negative RHS

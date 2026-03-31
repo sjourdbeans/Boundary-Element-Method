@@ -129,16 +129,17 @@ class MobilityProblem(BaseSystem):
         M @ [psi, U_t, omega].T = [u, 0, 0].T   \n
 
     M includes the surface_matrix, torque_matrix, the translational velocity matrix (identities), and the 
-    matrix representation of the cross product with r.
+    matrix representation of the cross product with r. 
+
+    NOTE: psi is actually psi/viscosity. So to find the
+    physical force and torque, the solution must be multiplied by viscosity. This is because the mobility matrix is calculated without viscosity.
 
     Parameters
     ----------
     mesh                : Mesh instance
                           The mesh to be used is a bemsolver.Mesh python object.
     flow_function       : Callable representing the flowfield.
-                          flow_function should be a function which returns U, W, and E for a given time t and position x
-    viscosity           : (optional) float default is 1e-3
-                          Viscosity of the surrounding fluid in Pa.s (default is water at room temperature)
+                          flow_function should be a function which returns U, W, and E for a given time t a
     particle_velocity   : (optional) float or integer default is 0
                           If the particle has a constant velocity in the direction of its orientation,
                           this can be set. Overall unnecessary if the particle will be self propelled.
@@ -183,7 +184,7 @@ class MobilityProblem(BaseSystem):
     >>> dt=0.01
     >>>
     >>> # calculate the solution over time
-    >>> solution = sys.RBM_over_time(T_max=dt, dt=dt, flow_function=find_flow,
+    >>> solution = sys.RBM_over_time(dt=dt, t_end=dt, flow_function=find_flow,
     >>>                              initial_position=initial_position,
     >>>                              initial_orientation=initial_orientation)
 
@@ -192,7 +193,6 @@ class MobilityProblem(BaseSystem):
     """
     
 
-    viscosity           :float = field(default_factory=lambda: 1e-3)  # Pa.s (water at room temp)
     particle_velocity   :float|int = field(default_factory=lambda: 0)
     
     def __post_init__(self):
@@ -225,7 +225,7 @@ class MobilityProblem(BaseSystem):
         T = self.torque_matrix
         
         # Mobility matrix 
-        Mh = (1/self.viscosity) * self.MATRIX
+        Mh =  self.MATRIX
 
         # Grand mobility matrix
         M=np.block([
@@ -248,7 +248,8 @@ class MobilityProblem(BaseSystem):
                       initial_position   :np.ndarray = np.array([0,0,0]),
                       initial_orientation:np.ndarray = np.array([0, 0, 0]),
                       gravity_direction  :np.ndarray = np.array([0,0,-1]),
-                      initial_quaternion :np.ndarray = None
+                      initial_quaternion :np.ndarray = None,
+                      viscosity          :float = 1e-3     
                       )->Solution:
         """
         Find the Rigid Body Motion of a particle in a given time interval and timestep. The initial position and orientation are
@@ -269,11 +270,14 @@ class MobilityProblem(BaseSystem):
                               Initial orientation pitch, yaw, roll
         gravity_direction   : numpy array
                               Direction of gravity in lab frame
-        initial_quaternion   : numpy array 
+        initial_quaternion  : numpy array 
                               Initial orientation as a quaternion [w, x, y, z]. standard set to None.
                               Quaternions are less intuitive but are better to use to avoid gimbal lock.
                               Better to use for varying initial conditions as random quaternions give a more uniform distribution
                               on the unit sphere compared to euler angles.
+        viscosity           : float
+                              Viscosity of the surrounding fluid in Pa.s (default is water at room temperature).
+                              Only necessary if particle is bouyant or has a center of mass offset.
                               
         Returns
         -------
@@ -291,7 +295,7 @@ class MobilityProblem(BaseSystem):
         -------
         The solution for X can be accesed by running
 
-        >>> solution = sys.RBM_over_time(T=100, dt=0.01, flow_function=find_flow)
+        >>> solution = sys.RBM_over_time( dt=0.01,T=100, flow_function=find_flow)
         >>> X = solution.X
 
 
@@ -310,6 +314,7 @@ class MobilityProblem(BaseSystem):
 
         # set gravity vector in lab frame
         self.gravity = 9.8 * gravity_direction / np.linalg.norm(gravity_direction)
+        self.viscosity = viscosity
 
         self.dt = dt
 
@@ -500,13 +505,12 @@ class MobilityProblem(BaseSystem):
 
         V = self.mesh.parameters["volume"] * 1e-18 # Convert to m^3
 
-        # Calculate gravitational force in body frame
-        F_gravity =  V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
-        # print(np.shape(Q.T@np.cross(Q[:,0], self.gravity)))
-        T_gravity = -  V *  (self.mesh.parameters["medium_rho"] 
+        # Calculate gravitational force in body frame (viscosity added to convert to Force/viscosity, since the mobility matrix is calculated without viscosity)
+        F_gravity =  (1/self.viscosity) * V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
+
+        T_gravity = - (1/self.viscosity) * V *  (self.mesh.parameters["medium_rho"] 
                                       + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) *  Q.T @np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
-        # print(-  V *  (self.mesh.parameters["medium_rho"]  + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) )
-        # T_gravity = np.cross(np.array([self.mesh.parameters["COM_offset"]*1000 , 0, 0]), F_gravity)  #Convert to pNum (10^-6 term)
+
         RHS = np.hstack((-U_rhs, F_gravity, T_gravity))
         
         # RHS = np.hstack((U_rhs, np.zeros(6)))
