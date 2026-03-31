@@ -142,7 +142,7 @@ def redraw():
     #     glyphs,
     #     scalars="speed",
     #     clim=[0.0, max_speed],
-    #     cmap="viridis",
+    #     cmap="turbo",
     #     opacity=0.6,
     #     scalar_bar_args={"title": "|u|"},
     # )
@@ -168,10 +168,10 @@ def redraw():
         if stream_tube.n_points > 0:
             state["stream_actor"] = pl.add_mesh(
                 stream_tube,
-                scalars="omega_z",
-                cmap="RdBu_r",
+                scalars="umag",
+                cmap="turbo",
                 opacity=0.8,
-                clim=[-5,5]
+                clim=[0,1]
             )
 
     # -------------------------
