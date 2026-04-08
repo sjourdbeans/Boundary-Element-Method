@@ -88,9 +88,9 @@ for frame in range(N_frames):
     v= (rotmat @ V[frame].T ).T
     v2=(rotmat @ V2[frame].T).T
 
-    flag1 = bem.SlenderCoordinates(R[frame],v, flagellum_length=lf,flagellum_radius=0.2)
+    flag1 = bem.SlenderCoordinates(R[frame],0*v, flagellum_length=lf,flagellum_radius=0.2)
     
-    flag2 = bem.SlenderCoordinates(R2[frame],v2, flagellum_length=lf,flagellum_radius=0.2)
+    flag2 = bem.SlenderCoordinates(R2[frame],0*v2, flagellum_length=lf,flagellum_radius=0.2)
 
     flagellum_1.append(flag1)
     flagellum_2.append(flag2)

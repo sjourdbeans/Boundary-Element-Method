@@ -54,7 +54,7 @@ R= R*lf
 
 # print(R)
 
-xbase =22 #22
+xbase =21 #22
 ybase = 0#1#1.5
 zbase = 0 #-1.5
 
@@ -76,7 +76,7 @@ zbase = 0 #-1.5
 N_frames = np.shape(R)[-1]
 print(N_frames)
 dt = 0.025/N_frames
-
+print(N_frames)
 
 
 # V = np.gradient(R, dt,axis=2)
@@ -127,7 +127,7 @@ for frame in range(N_frames):
 
 
 
-    flag = bem.SlenderCoordinates(r, velocity=v, flagellum_length=lf,flagellum_radius=0.1, smin=0.1)
+    flag = bem.SlenderCoordinates(r, velocity=v, flagellum_length=lf,flagellum_radius=0.1, smin=0.01)
     # print(flag.tangents)
     # mesh.plot_mesh()
     # plt.plot(r[:,0], r[:,1], r[:,2], color='r',zorder=3)

@@ -24,15 +24,19 @@ mpl.rcParams["axes.labelsize"]=15
 mpl.rcParams["axes.titlesize"]=15
 mpl.rcParams["legend.fontsize"]=13
 
-shear_rate = 12
+shear_rate = 10
 # fileswimmer = "/scratch/sbuitjes/swimmer_objects/chlamy/chlamy-3d/chlamy_free_1280.pkl"
 fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl"
+# fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_experimental.pkl"
 with open(fileswimmer, "rb") as f:
     swimmer_template = pickle.load(f)
 
 # file = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/shear=0.0_N=8_periods_10/rank_000.h5"
 # folder = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats/mesh=320_shear={shear_rate}_N=4500_periods_140"
-folder = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats/mesh=320_shear={shear_rate}_N=4500_periods_140"
+# folder = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats/mesh=320_shear={shear_rate}_N=4500_periods_140"
+folder=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/mesh=320_shear={shear_rate}_N=4500_periods_140"
+# folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/euglena/mesh=320_shear={shear_rate}_N=20000_periods_32"
+# folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/rigid-particles/ratio=5.8/mesh=320/shear={shear_rate}_N=4500_periods_140"
 # folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/rigid-particles/ratio=1.25/shear={shear_rate}_N=10_periods_140"
 # folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/quarter_sphere/mesh=320_shear={shear_rate}_N=1100_periods_140"
 outdir =  Path(folder)
@@ -125,10 +129,10 @@ step=0
 
 plot_steps = 1
 
-new_frames = (step+1) *frames_per_beat
+new_frames = 20 *frames_per_beat
 
-discard_beats = step
-strobo_idx = np.arange(discard_beats * frames_per_beat, frames, frames_per_beat)
+discard_beats = 0
+strobo_idx = np.arange(discard_beats * frames_per_beat, new_frames, frames_per_beat)
 
 # strobo_idx = np.arange(0, frames, frames_per_beat)
 strobo_quats = quaternions[::plot_steps, strobo_idx, :]
@@ -184,19 +188,19 @@ dirs_flat = directors.reshape(-1, 3)
 # dirs_flat = directors.reshape(-1, 3)
 
 # azimuth in units of pi: [-1, 1]
-azimuth_pi = np.arctan2(dirs_flat[:, 1], dirs_flat[:, 0]) / np.pi
-theta = np.arccos(np.clip(dirs_flat[:, 2], -1, 1))
-theta_pi = theta / np.pi
+# azimuth_pi = np.arctan2(dirs_flat[:, 1], dirs_flat[:, 0]) / np.pi
+# theta = np.arccos(np.clip(dirs_flat[:, 2], -1, 1))
+# theta_pi = theta / np.pi
 
-# 2D histogram with raw counts
-H, th_edges, az_edges = np.histogram2d(
-    theta_pi,
-    azimuth_pi,
-    bins=[120, 240],
-    range=[[0, 1], [-1, 1]]
-)
+# # 2D histogram with raw counts
+# H, th_edges, az_edges = np.histogram2d(
+#     theta_pi,
+#     azimuth_pi,
+#     bins=[120, 240],
+#     range=[[0, 1], [-1, 1]]
+# )
 
-# Convert edges back to radians for area calculation
+# # Convert edges back to radians for area calculation
 # az_edges_rad = az_edges * np.pi
 # th_edges_rad = th_edges * np.pi
 
@@ -220,7 +224,7 @@ H, th_edges, az_edges = np.histogram2d(
 #     az_edges[:-1] + np.diff(az_edges) / 2,  # shift to bin centers
 #     H_plot.T,  # Transpose because we want azimuth on x and polar on y
 #     shading="auto",
-#     cmap="turbo"
+#     cmap="turbo", vmax=1
 # )
 
 # # Add color bar for PDF
@@ -228,8 +232,8 @@ H, th_edges, az_edges = np.histogram2d(
 # cbar.set_label("PDF")
 
 # # Label axes and set title
-# ax.set_ylabel(r"Azimuth $\phi / \pi$")
-# ax.set_xlabel(r"Polar angle $\theta / \pi$")
+# ax.set_ylabel(r"In-Plane Angle $\phi / \pi$")
+# ax.set_xlabel(r"Vorticity Angle $\theta / \pi$")
 # ax.set_title(f"Orientational Distribution Chlamy with $\\dot{{\\gamma}}={shear_rate}$ s$^{{-1}}$")
 # ax.set_xlim(0, 1)
 # ax.set_ylim(-1, 1)
@@ -237,12 +241,66 @@ H, th_edges, az_edges = np.histogram2d(
 # # Optional grid and layout adjustments
 # ax.grid(alpha=0.2)
 # plt.tight_layout()
-# plt.show()
-# plt.tight_layout()
-# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/Orientations/chlamy/3D/Distributions/2D/Distribution_mesh=320_shear={shear_rate}_N={N_conditions}_periods_{periods}.pdf")
-# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plot_images/Orientations/chlamy/3D/Distributions/2D/Distribution_mesh=320_shear={shear_rate}_N={N_conditions}_periods_{periods}.png",dpi=600)
+
+# # plt.tight_layout()
+# # plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/Orientations/chlamy/3D/Distributions/2D/Distribution_mesh=320_shear={shear_rate}_N={N_conditions}_periods_{periods}.pdf")
+# # plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plot_images/Orientations/chlamy/3D/Distributions/2D/Distribution_mesh=320_shear={shear_rate}_N={N_conditions}_periods_{periods}.png",dpi=600)
 # plt.show()
 
+
+# ===============CLAUDE TEST=================
+
+# Paper's convention:
+# ez = sin(Theta)  ->  Theta = arcsin(ez)
+# ey = cos(Theta)*sin(Psi)  ->  Psi = arctan2(ey, -ex)
+
+ex_paper =  dirs_flat[:, 0]   # flow: same
+ey_paper = -dirs_flat[:, 2]   # paper's y (vorticity) = your -z
+ez_paper =  dirs_flat[:, 1]   # paper's z (gradient)  = your y
+
+Theta = np.arcsin(np.clip(-ez_paper, -1, 1))          # elevation from x-y plane
+Psi   = np.arctan2(ey_paper, ex_paper)               # azimuth in x-y plane
+
+H, psi_edges, th_edges = np.histogram2d(
+    Psi,
+    Theta,
+    bins=[240, 120],
+    range=[[-np.pi, np.pi], [-np.pi/2, np.pi/2]]
+)
+
+# Area correction: dA = cos(Theta) * dPsi * dTheta
+dPsi  = np.diff(psi_edges)[None, :]
+th_centers = 0.5 * (th_edges[:-1] + th_edges[1:])
+dA = np.cos(th_centers)[:, None] * np.diff(th_edges)[:, None] * dPsi[None, :]
+# Actually simpler:
+dPsi_val  = np.diff(psi_edges)   # shape (n_psi,)
+dTheta_val = np.diff(th_edges)   # shape (n_th,)
+cos_th = np.cos(0.5 * (th_edges[:-1] + th_edges[1:]))  # shape (n_th,)
+
+bin_area = np.outer(dPsi_val, dTheta_val * cos_th)  # shape (n_psi, n_th)
+
+H_area = H / bin_area
+H_plot = H_area / np.sum(H_area * bin_area)
+
+fig, ax = plt.subplots(figsize=(9, 6))
+pcm = ax.pcolormesh(
+    psi_edges[:-1] + np.diff(psi_edges) / 2,   # Psi on x-axis
+    th_edges[:-1]  + np.diff(th_edges)  / 2,   # Theta on y-axis
+    H_plot.T,
+    shading="auto",
+    cmap="turbo", vmax=1
+)
+cbar = plt.colorbar(pcm, ax=ax)
+cbar.set_label("PDF")
+ax.set_xlabel(r"$\Psi$")
+ax.set_ylabel(r"$\Theta$")
+ax.set_xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
+ax.set_xticklabels([r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"])
+ax.set_yticks([-np.pi/2, 0, np.pi/2])
+ax.set_yticklabels([r"$-\pi/2$", r"$0$", r"$\pi/2$"])
+plt.tight_layout()
+plt.show()
+#=============================================================
 
 
 # az_edges_rad = az_edges * np.pi
@@ -263,7 +321,7 @@ H, th_edges, az_edges = np.histogram2d(
 
 # X = np.sin(TH) * np.cos(AZ)
 # Y = np.sin(TH) * np.sin(AZ)
-# Z = np.cos(TH)
+# Z = -np.cos(TH)
 
 # # close the azimuthal seam
 # X = np.concatenate([X, X[:, :1]], axis=1)
@@ -291,59 +349,59 @@ H, th_edges, az_edges = np.histogram2d(
 # )
 # fig.show()
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from matplotlib.colors import Normalize
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import matplotlib.cm as cm
+# from matplotlib.colors import Normalize
 
-az_edges_rad = az_edges * np.pi
-th_edges_rad = th_edges * np.pi
-dphi  = np.diff(az_edges_rad)
-dA_th = np.cos(th_edges_rad[:-1]) - np.cos(th_edges_rad[1:])
-bin_area = dA_th[:, None] * dphi[None, :]
-H_area = H / bin_area
-H_plot = H_area / np.sum(H_area * bin_area)
+# az_edges_rad = az_edges * np.pi
+# th_edges_rad = th_edges * np.pi
+# dphi  = np.diff(az_edges_rad)
+# dA_th = np.cos(th_edges_rad[:-1]) - np.cos(th_edges_rad[1:])
+# bin_area = dA_th[:, None] * dphi[None, :]
+# H_area = H / bin_area
+# H_plot = H_area / np.sum(H_area * bin_area)
 
-th_mid = (th_edges[:-1] + th_edges[1:]) / 2 * np.pi
-az_mid = (az_edges[:-1] + az_edges[1:]) / 2 * np.pi
-TH, AZ = np.meshgrid(th_mid, az_mid, indexing='ij')
+# th_mid = (th_edges[:-1] + th_edges[1:]) / 2 * np.pi
+# az_mid = (az_edges[:-1] + az_edges[1:]) / 2 * np.pi
+# TH, AZ = np.meshgrid(th_mid, az_mid, indexing='ij')
 
-X = np.sin(TH) * np.cos(AZ)
-Y = np.sin(TH) * np.sin(AZ)
-Z = np.cos(TH)
+# X = np.sin(TH) * np.cos(AZ)
+# Y = np.sin(TH) * np.sin(AZ)
+# Z = np.cos(TH)
 
-# close azimuthal seam
-X = np.concatenate([X, X[:, :1]], axis=1)
-Y = np.concatenate([Y, Y[:, :1]], axis=1)
-Z = np.concatenate([Z, Z[:, :1]], axis=1)
-C = np.concatenate([H_plot, H_plot[:, :1]], axis=1)
+# # close azimuthal seam
+# X = np.concatenate([X, X[:, :1]], axis=1)
+# Y = np.concatenate([Y, Y[:, :1]], axis=1)
+# Z = np.concatenate([Z, Z[:, :1]], axis=1)
+# C = np.concatenate([H_plot, H_plot[:, :1]], axis=1)
 
-norm = Normalize(vmin=0.0, vmax=1.0)
-facecolors = cm.turbo(norm(C))
+# norm = Normalize(vmin=0.0, vmax=1.0)
+# facecolors = cm.turbo(norm(C))
 
-fig = plt.figure(figsize=(7, 6))
-ax = fig.add_subplot(111, projection='3d')
+# fig = plt.figure(figsize=(7, 6))
+# ax = fig.add_subplot(111, projection='3d')
 
-ax.plot_surface(
-    X, Y, Z,
-    facecolors=facecolors,
-    rstride=1, cstride=1,
-    antialiased=False,
-    shade=False,
-)
+# ax.plot_surface(
+#     X, Y, Z,
+#     facecolors=facecolors,
+#     rstride=1, cstride=1,
+#     antialiased=False,
+#     shade=False,
+# )
 
-mappable = cm.ScalarMappable(norm=norm, cmap='turbo')
-mappable.set_array(C)
-cbar = fig.colorbar(mappable, ax=ax, shrink=0.5, pad=0.1)
-cbar.set_label('density')
+# mappable = cm.ScalarMappable(norm=norm, cmap='turbo')
+# mappable.set_array(C)
+# cbar = fig.colorbar(mappable, ax=ax, shrink=0.5, pad=0.1)
+# cbar.set_label('density')
 
-ax.set_xlabel('$x$')
-ax.set_ylabel('$y$')
-ax.set_zlabel('$z$')
-ax.set_box_aspect([1, 1, 1])
-ax.view_init(azim=45, elev=20, vertical_axis='y')
-# plt.rcParams['font.family'] = 'Palatino'  # or 'Palatino Linotype' on Windows
+# ax.set_xlabel('$x$')
+# ax.set_ylabel('$y$')
+# ax.set_zlabel('$z$')
+# ax.set_box_aspect([1, 1, 1])
+# ax.view_init(azim=45, elev=20, vertical_axis='y')
+# # plt.rcParams['font.family'] = 'Palatino'  # or 'Palatino Linotype' on Windows
 
-# plt.tight_layout()
-plt.savefig("figure.pdf")
-plt.show()
+# # plt.tight_layout()
+# plt.savefig("figure.pdf")
+# plt.show()

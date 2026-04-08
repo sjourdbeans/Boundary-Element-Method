@@ -44,11 +44,11 @@ rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
                  [np.sin(theta), np.cos(theta),0],
                  [0,0,1]])
 
-R = coords.reshape(int(len(coords)/20),20,3)
+# R = coords.reshape(int(len(coords)/20),20,3)
 R2 = coords_2.reshape(int(len(coords_2)/20),20,3)
-# R2 = R.copy()
-# R2[:,:,0] *= -1
-# R[:,:,2] *= -1
+R = R2.copy()
+R[:,:,0] *= -1
+R[:,:,2] *= -1
 
 
 T1 = R[:, 1:,:] - R[:,:-1, :]
@@ -73,13 +73,13 @@ Nt= len(R)
 
 mesh = bem.Mesh(chlamy_path)
 
-scale_out_of_plane = 0#1
+scale_amplitude = 0#1
 new_flag_length = 12
 
 
-scales =np.arange(0, 1.5,0.1)
+scales =np.arange(1, 1.6,0.05)
 
-for scale_out_of_plane in scales:
+for amplitude in scales:
 
     r1_map = np.zeros((factor*Nt, len(R[0])-1, 3))
     r2_map = np.zeros((factor*Nt, len(R2[0])-1, 3))
@@ -89,8 +89,8 @@ for scale_out_of_plane in scales:
         frame = time_frame % Nt
 
 
-        curve_1 = bem.SlenderAngles(theta_1_map[time_frame,:], scale_out_of_plane*phi_1_map[time_frame,:], flagellum_length=new_flag_length,flagellum_radius=0.1)
-        curve_2 = bem.SlenderAngles(theta_2_map[time_frame,:], scale_out_of_plane*phi_2_map[time_frame,:], flagellum_length=new_flag_length,flagellum_radius=0.1)
+        curve_1 = bem.SlenderAngles(amplitude * theta_1_map[time_frame,:], phi_1_map[time_frame,:], flagellum_length=new_flag_length,flagellum_radius=0.1)
+        curve_2 = bem.SlenderAngles( theta_2_map[time_frame,:], phi_2_map[time_frame,:], flagellum_length=new_flag_length,flagellum_radius=0.1)
 
         r1_map[time_frame,:,:] = curve_1.r
         r2_map[time_frame,:,:] = curve_2.r
@@ -141,8 +141,9 @@ for scale_out_of_plane in scales:
 
     # ===================Save option 1=====================
 
+
     # Save swimmer object without results (large file)
-    with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/scale-out-of-plane/chlamy_free_3d_waveform_scale={round(scale_out_of_plane,1)}.pkl", "wb") as f:
+    with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/scale-amplitude/r2/chlamy_free_3d_waveform_amp_scale={round(amplitude,2)}.pkl", "wb") as f:
         pickle.dump(chlamy, f)
 
 

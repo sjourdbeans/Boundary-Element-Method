@@ -26,6 +26,7 @@ mpl.rcParams["axes.titlesize"]=15
 mpl.rcParams["legend.fontsize"]=13
 
 shear_rate = 12
+scale = 1
 # fileswimmer = "/scratch/sbuitjes/swimmer_objects/chlamy/chlamy-3d/chlamy_free_1280.pkl"
 fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl"
 # fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_experimental.pkl"
@@ -33,9 +34,12 @@ with open(fileswimmer, "rb") as f:
     swimmer_template = pickle.load(f)
 
 # outfile=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/euglena/mesh=320/shear={shear_rate}_N=20000_periods_32.npz"
-# outfile=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/rigid-particles/ratio=5.8/mesh=320/distributions/shear={shear_rate}_N=4500_periods_140.npz"
+# outfile=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/rigid-particles/ratio=1.25/distributions/shear={shear_rate}_N=4500_periods_140.npz"
 # outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-2d/non-symmetric/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
+# outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/non-symmetric/scale-out-of-plane/scale={scale}_shear={shear_rate}_N=4500_periods_140.npz"
 outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
+# outfile=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/zero_thrust/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
+# outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
 outdir =  Path(outfile)
 
 
@@ -71,27 +75,30 @@ pcm = ax.pcolormesh(
     az_edges[:-1] + np.diff(az_edges) / 2,  # shift to bin centers,
     H_plot.T,
     shading="auto",
-    cmap="turbo",vmax=2
+    cmap="turbo",vmax=1
 )
 
 cbar = plt.colorbar(pcm, ax=ax)
 cbar.set_label("PDF")
 
-ax.set_ylabel(r"Azimuth $\phi / \pi$")
-ax.set_xlabel(r"Polar angle $\theta / \pi$")
+ax.set_ylabel(r"In-Plane Angle $\phi / \pi$")
+ax.set_xlabel(r"Vorticity Angle $\theta /s/Master-Thesis-Project/plots/Orientations/rigid-particles/ratio=1.25/Distribution_mesh=320_shear={shear_rate}_N=4500_periods_{periods}.pdf")
+# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesi \pi$")
 ax.set_title(
-    f"Orientational Distribution Chlamy with $\\dot{{\\gamma}}={shear_rate}$ s$^{{-1}}$"
+    f"Orientational Distribution Chlamy Symmetric with $\\dot{{\\gamma}}={shear_rate}$ s$^{{-1}}$"
 )
 ax.set_xlim(0, 1)
 ax.set_ylim(-1, 1)
 ax.grid(alpha=0.2)
 
 plt.tight_layout()
+# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/Orientations/rigid-particles/ratio=1.25/Distribution_mesh=320_shear={shear_rate}_N=4500_periods_{periods}.pdf")
+# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plot_images/Orientations/rigid-particles/ratio=1.25/Distribution_mesh=320_shear={shear_rate}_N=4500_periods_{periods}.png",dpi=600)
 plt.show()
 
 #==========Plotly===========
 
-# mid-bin angles
+#mid-bin angles
 # th_mid = (th_edges[:-1] + th_edges[1:]) / 2 * np.pi
 # az_mid = (az_edges[:-1] + az_edges[1:]) / 2 * np.pi
 
@@ -99,7 +106,7 @@ plt.show()
 
 # X = np.sin(TH) * np.cos(AZ)
 # Y = np.sin(TH) * np.sin(AZ)
-# Z = np.cos(TH)
+# Z = -np.cos(TH)
 
 # # close the azimuthal seam
 # X = np.concatenate([X, X[:, :1]], axis=1)
@@ -112,7 +119,7 @@ plt.show()
 #     surfacecolor=C,
 #     colorscale='Turbo',
 #     cmin=0.0,    # lower bound
-#     cmax=0.4,    # upper bound
+#     cmax=50,    # upper bound
 #     colorbar=dict(title='density', thickness=15),
 #     lighting=dict(ambient=0.8, diffuse=0.5, specular=0.1, roughness=0.8)
 # ))
