@@ -16,7 +16,8 @@ import os
 os.environ["PATH"] += ":/usr/bin"
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams["font.family"]= "Palatino"
-mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
+mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}\usepackage{amssymb}\usepackage{upgreek}"
+# mpl.rcParams['text.latex.preamble'] = r'\usepackage{upgreek}'
 
 mpl.rcParams["xtick.labelsize"]=13
 mpl.rcParams["ytick.labelsize"]=13
@@ -67,41 +68,74 @@ sys=BEM.ResistanceProblem(mesh)
 psi, force, torque = sys.solve(U,W)
 
 
-figs, axes, cbars=sys.plot_singularity_density()
 
 import matplotlib.pyplot as plt
 
-figs, axes, cbars=sys.plot_singularity_density()
+from matplotlib.ticker import MaxNLocator
 
-component=['$x$', '$y$', '$z$']
+figs, axes, cbars = sys.plot_singularity_density()
 
+component = ['$x$', '$y$', '$z$']
 
+# Create a single figure with 3 subplots
+fig = plt.figure(figsize=(24, 7))
 
+# Get global min/max across all three components for shared colorbar
+psi = sys.psi.reshape((sys.mesh.elements, 3))
+vmin = np.min(psi)
+vmax = np.max(psi)
 
-for i, (fig, ax, cbar) in enumerate(zip(figs,axes, cbars)):
+axes_new = []
+for i in range(3):
+    ax = fig.add_subplot(1, 3, i + 1, projection='3d')
+    axes_new.append(ax)
 
-    
-    fig.set_size_inches(10,7)
-    ax.set_title(component[i]+r" Component of the Singularity Density $\psi$", pad = 0)
+    # Replot panels with shared normalization
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from matplotlib import cm, colors
+
+    cmap = cm.Spectral_r
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    panels = sys.mesh.panels
+
+    for ii in range(panels.shape[2]):
+        panel = panels[1:, :, ii]
+        n = int(panels[0, 0, ii])
+        verts = panel[:n, :]
+        color = cmap(norm(psi[ii, i]))
+        poly = Poly3DCollection([verts], facecolors=color, edgecolors='k')
+        ax.add_collection3d(poly)
+
+    ax.set_title(component[i] + r" Component of $\boldsymbol{\psi}$", pad=0)
     ax.view_init(elev=20, azim=30)
-    ax.set_xlabel(r'$x$ [$\mu$m]',labelpad=15)
-    ax.set_ylabel(r'$y$ [$\mu$m]',labelpad=15)
-    ax.set_zlabel(r'$z$ [$\mu$m]',labelpad=20)
-         
+    ax.set_xlabel(r'$\mathbf{\hat{x}}$ [$\upmu$m]', labelpad=15)
+    ax.set_ylabel(r'$\mathbf{\hat{y}}$ [$\upmu$m]', labelpad=15)
+    if i ==0:
+        ax.set_zlabel(r'$\mathbf{\hat{z}}$ [$\upmu$m]', labelpad=15)
+    
 
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax.zaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax.set_xlim(-1,1)
+    ax.set_ylim(-1,1)
+    ax.set_zlim(-1,1)
     ax.tick_params(axis='both', pad=8)
     ax.tick_params(axis='z', pad=6)
+    # set_axes_equal(ax)
 
-    cbar.set_label(r"Singularity Strength Coefficient", rotation=-90, labelpad=15)
+# Single shared colorbar on the right
+mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+mappable.set_array(psi)
 
-    fig.subplots_adjust(left=0.0, right=0.95, top=0.95, bottom=0.0)
+fig.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.15)
+cbar_ax = fig.add_axes([0.25, 0.1, 0.5, 0.03])  # [left, bottom, width, height]
+cbar = fig.colorbar(mappable, cax=cbar_ax, orientation='horizontal')
+cbar.set_label(r"Singularity Strength [Pa]",labelpad=5)
+fig.set_size_inches(17, 7)
+fig.savefig(f"{plot_path}/Singularity_density_combined.pdf")
+fig.savefig(f"{plot_image_path}/Singularity_density_combined.png", dpi=600)
 
-    set_axes_equal(ax)
-    fig.savefig(f"{plot_path}/Singularity_density_{component[i][1]}.pdf")
-    fig.savefig(f"{plot_image_path}/Singularity_density_{component[i][1]}.png",dpi=600)
-
-
-
-# MATRIX, surface_matrix, torque_matrix=sys.construct_mobility_matrix()
-# print(force)
-
+# Close the original separate figures
+for f in figs:
+    plt.close(f)
