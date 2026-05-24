@@ -966,7 +966,7 @@ class FreeSwimmer(BaseSystem):
             # Interaction matrix of flagellum 2 with the evaluation points
             K2 = self.flagellum_2[time_frame].calc_interaction(interaction_object.evaluation_points)
 
-            U_field = (1/self.viscosity) * (interaction_object.MATRIX @ self.solution.psi[frame_index] 
+            U_field = (interaction_object.MATRIX @ self.solution.psi[frame_index] 
                        + K1 @ self.solution.f1[frame_index] 
                        + K2 @ self.solution.f2[frame_index]) 
 
