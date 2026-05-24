@@ -722,11 +722,12 @@ class SlenderAngles(SlenderBody):
         
         self.tangents  = np.column_stack((tx, ty, tz))
 
-        self.r        = np.zeros((len(self.ss), 3))
+        self.r        = np.zeros((len(self.ss)-1, 3))
         self.r[0]     = self.base_position
 
+        # print(len(self.ss))
         # Use trapezoidal rule to calculate the coordinates of the curve
-        for i in range(1,len(self.ss)):
+        for i in range(1,len(self.ss)-1):
             self.r[i] = self.r[i-1] + 0.5 * (self.tangents[i-1] + self.tangents[i]) * self.element_lengths[i-1]
 
         # make copy of full curve just in case
@@ -737,7 +738,7 @@ class SlenderAngles(SlenderBody):
         self.ss              = self.ss[self.indstart:]
         self.flag_centroids  = self.flag_centroids[self.indstart:]
         self.element_lengths = self.element_lengths[self.indstart:]
-        self.tangents        = self.tangents[self.indstart]
+        self.tangents        = self.tangents[self.indstart+1:]
 
 
         # Amount of elements in curve
