@@ -133,9 +133,9 @@ def plot_vector_field(x, y, U_magnitude, x_quiver, y_quiver, Ux_quiver, Uy_quive
     if quiver: 
         plt.quiver(x_quiver, y_quiver, Ux_quiver, Uy_quiver,
                     color='white', scale=vector_scale, headlength=4, headwidth=2)
-    plt.colorbar(c,label=r'$|\mathbf{U}_{\text{field}}|$ [$\mu$m/s]')
+    cbar=plt.colorbar(c,label=r'$|\mathbf{U}_{\text{field}}|$ [$\mu$m/s]')
     plt.xlabel(f'${view[0]}$ [$\\mu$m]')
     plt.ylabel(f'${view[1]}$ [$\\mu$m]')
     plt.title('Flow magnitude and direction')
     plt.axis('equal')
-    return fig
+    return fig, cbar

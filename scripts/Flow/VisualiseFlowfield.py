@@ -16,7 +16,7 @@ import os
 os.environ["PATH"] += ":/usr/bin"
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams["font.family"]= "Palatino"
-mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
+mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}\usepackage{amssymb}\usepackage{upgreek}"
 
 mpl.rcParams["xtick.labelsize"]=13
 mpl.rcParams["ytick.labelsize"]=13
@@ -40,7 +40,7 @@ gamma_dot=0
 
 W[0] = 0
 W[1] = 0
-W[2] = -gamma_dot/2
+W[2] = -gamma_dot
 
 # Rate of strain tensor
 E = gamma_dot/2*np.array([[0,1,0],
@@ -56,8 +56,8 @@ mesh= bem.Mesh(path)
 
 Nx=200 + 1
 Ny=200 + 1
-xlim=2
-ylim=2
+xlim=3
+ylim=3
 
 x = np.linspace(-xlim, xlim, Nx)
 y = np.linspace(-ylim, ylim, Ny)
@@ -91,10 +91,13 @@ Uz = U_field[:, 2].reshape(Ny, Nx)
 vmax=1#*np.max(np.linalg.norm(U_field, axis =1))
 # vmax=4
 
-fig = interaction.plot_vector_field(x, y, U_field, vmax= vmax, quiver_density=100)
-fig.set_size_inches(10,8)
+fig, cbar = interaction.plot_vector_field(x, y, U_field, vmax= vmax, quiver_density=12, vector_scale=15)
+fig.set_size_inches(6,4.8)
+cbar.set_label(r'$|\mathbf{U}_{\text{field}}|$ [$\upmu$m/s]')
 ax = fig.axes[0]
-ax.set_title(f"Flowfield With $\\mathbf{{u}}^{{\\infty}}=-\\mathbf{{\\hat{{x}}}}$ $\\mu$s$^{{-1}}$", fontsize=20)
+ax.set_title(f"Disturbance Field with $\\mathbf{{u}}^{{\\infty}}=-U\\mathbf{{\\hat{{x}}}}$ $\\upmu$m/s", fontsize=20)
+ax.set_xlabel(r'$x$ [$\upmu$m]')
+ax.set_ylabel(r'$y$ [$\upmu$m]')
 ax.plot(mesh.isosurface[:,0],-mesh.isosurface[:,1],color='r')
 
 # ========== Uncomment for streamlines ==========
@@ -103,10 +106,10 @@ ax.plot(mesh.isosurface[:,0],-mesh.isosurface[:,1],color='r')
 #================================================
 
 # ax.set_title(f"Shear Flow with $\\dot{{\\gamma}}={gamma_dot}$ s$^{{-1}}$", fontsize=20)
-plt.show()
-# fig.savefig(f"{plot_path}/Flowfield_sphere_u_x={U[0]}.pdf")
-# fig.savefig(f"{plot_image_path}/Flowfield_sphere_u_x={U[0]}.png",dpi=600)
-
 # plt.show()
+fig.savefig(f"{plot_path}/Flowfield_sphere_u_x={U[0]}.pdf")
+fig.savefig(f"{plot_image_path}/Flowfield_sphere_u_x={U[0]}.png",dpi=600)
+
+plt.show()
 
 

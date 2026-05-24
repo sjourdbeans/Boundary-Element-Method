@@ -5,13 +5,14 @@ import numpy as np
 import pyvista as pv
 
 
-N=51
+
+pl = pv.Plotter(off_screen=True)
 
 # =========================
 # User settings
 # =========================
 # data_dir = Path("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/chlamy_vtk_export")  # change this
-data_dir = Path(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/velocity-fields/new_flag/Flowfield_new_flag_Nx-Ny-Nz={N}-{N}-{N}_vtk_export")
+data_dir = Path("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/velocity-fields/Flowfield_Nx-Ny-Nz=51-51-51_vtk_export")
 frames_dir = data_dir / "frames"
 geom_dir = data_dir / "geometry"
 
@@ -173,7 +174,7 @@ def redraw():
                 scalars="umag",
                 cmap="turbo",
                 opacity=0.8,
-                clim=[0,1000]
+                clim=[0,1]
             )
 
     # -------------------------
@@ -223,8 +224,8 @@ def update_glyph_scale(value):
 # =========================
 # UI
 # =========================
-pl.add_key_event("Right", next_frame)
-pl.add_key_event("Left", prev_frame)
+# pl.add_key_event("Right", next_frame)
+# pl.add_key_event("Left", prev_frame)
 
 # pl.add_slider_widget(
 #     callback=update_glyph_scale,
@@ -235,5 +236,21 @@ pl.add_key_event("Left", prev_frame)
 #     pointb=(0.64, 0.1),
 # )
 
-redraw()
-pl.show()
+# redraw()
+
+
+# pl.show()
+
+pl.camera_position = [
+    (-10, 60, 80),   # camera location
+    (0, 0, 0),      # point it looks at
+    (0, 0, 1),      # "up" direction
+]
+pl.open_movie("flowfield.mp4", framerate=10)
+
+for frame in range(n_frames):
+    state["frame"] = frame
+    redraw()
+    pl.write_frame()
+
+pl.close()
