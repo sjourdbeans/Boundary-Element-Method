@@ -744,7 +744,7 @@ class FreeSwimmer(BaseSystem):
                   time                     :float|int,
                   dt                       :float)->tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Given an initial x and p, calculate the next iteration with timestep dt using forward euler numerical integration.
+        Given an initial x and q, calculate the next iteration with timestep dt using RK2 numerical integration.
 
         Parameters
         ----------
