@@ -907,8 +907,8 @@ class FreeSwimmer(BaseSystem):
         # Calculate gravitational force in body frame (include viscosity since psi, f1, and f2 are force / viscosity)
         F_gravity = (1/self.viscosity) * V * self.mesh.parameters["Delta_rho"] * Q.T @ self.gravity  * 1e12 #Convert to pN (10^-6 term)
 
-        T_gravity = - (1/self.viscosity) * V *  (self.mesh.parameters["medium_rho"] 
-                                      + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
+        T_gravity = (1/self.viscosity) * V *  (self.mesh.parameters["medium_rho"] 
+                                      + self.mesh.parameters["Delta_rho"]) * (self.mesh.parameters["COM_offset"] * 1e-6) * Q.T @ np.cross(-Q[:,0], self.gravity) *1e18 #Convert to pNum (10^-6 term)
 
         RHS = np.hstack((-rhs, F_gravity, T_gravity))
 
