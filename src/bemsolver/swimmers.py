@@ -985,7 +985,7 @@ class FreeSwimmer(BaseSystem):
             
 
         U_total = U - u_swim
-        W_total = W - omega_swim
+        W_total = W - 2*omega_swim
 
         # Transform background flow to swimmer frame
         U_body = Q.T @ U_total
