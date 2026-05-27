@@ -928,7 +928,7 @@ class FreeSwimmer(BaseSystem):
                           interaction_object : FlowStokes,
                           frame_index        : int        ,
                           find_flow          : Callable[[float,np.ndarray], tuple[np.ndarray]],
-                          include_rbm        : bool = True) -> np.ndarray:
+                          include_rbm        : bool = False) -> np.ndarray:
         """
         Calculate the velocity field at the evaluation points for a given frame index.
 
