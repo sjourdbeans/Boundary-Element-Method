@@ -77,7 +77,7 @@ points = np.vstack((xg, yg, zg)).T
 
 interaction = bem.FlowStokes(mesh,points)
 
-sys = bem.ResistanceProblem(mesh)
+sys = bem.FixedParticle(mesh)
 
 psi, force, torque = sys.solve(U,W,E)
 

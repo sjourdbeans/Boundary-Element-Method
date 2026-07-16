@@ -124,7 +124,7 @@ for file in files:
     mesh.b=float(file.split("=")[-1].split(".mat")[0])
 
     # mesh.plot_mesh(plot_normals=False)
-    sys=BEM.MobilityProblem(mesh)
+    sys=BEM.FreeParticle(mesh)
 
 
     M=sys.construct_grand_mobility_matrix()

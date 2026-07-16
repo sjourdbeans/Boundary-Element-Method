@@ -6,7 +6,7 @@ BEM Stokes swimmer solver.
 
 
 from .mesh import Mesh
-from .stokes_problems import MobilityProblem, ResistanceProblem
+from .stokes_problems import FreeParticle, FixedParticle
 from .flowfield import FlowStokes
 from .SaveData import Solution
 from .flagella import SlenderCurvTors, SlenderCoordinates, SlenderAngles

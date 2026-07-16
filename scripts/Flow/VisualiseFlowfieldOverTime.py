@@ -57,7 +57,7 @@ mesh=bem.Mesh(path)
 initial_orientation = np.array([1,0,0])
 initial_position    = np.array([0,0,0])
 
-sys=bem.MobilityProblem(mesh)
+sys=bem.FreeParticle(mesh)
 dt=0.01
 T=100
 

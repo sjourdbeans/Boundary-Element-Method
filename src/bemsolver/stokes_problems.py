@@ -13,7 +13,7 @@ from .SaveData import Solution
 
 
 @dataclass
-class ResistanceProblem(BaseSystem):
+class FixedParticle(BaseSystem):
     """
     This child class inherits all methods from BaseSystem to calculate the mobility matrix 
     (or in this case the resistance matrix) and to set up all the necessary information to 
@@ -111,7 +111,7 @@ class ResistanceProblem(BaseSystem):
 
 
 @dataclass
-class MobilityProblem(BaseSystem):
+class FreeParticle(BaseSystem):
     """
     This child class inherits all methods from BaseSystem to calculate the mobility matrix and other necessary
     information to solve the mobility problem of an object in a flow. The mobility matrix is constructed in the

@@ -63,7 +63,7 @@ W[2] = 0
     
 mesh=BEM.Mesh(path)
 
-sys=BEM.ResistanceProblem(mesh)
+sys=BEM.FixedParticle(mesh)
 
 psi, force, torque = sys.solve(U,W)
 
