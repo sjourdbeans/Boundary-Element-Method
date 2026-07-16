@@ -92,10 +92,14 @@ vmax=1#*np.max(np.linalg.norm(U_field, axis =1))
 # vmax=4
 
 fig, cbar = interaction.plot_vector_field(x, y, U_field, vmax= vmax, quiver_density=12, vector_scale=15)
+for ax in fig.axes:
+    for coll in ax.collections:
+        coll.set_rasterized(True)
 fig.set_size_inches(6,4.8)
-cbar.set_label(r'$|\mathbf{U}_{\text{field}}|$ [$\upmu$m/s]')
+cbar.set_label(r'$\|\mathbf{u}+\mathbf{u}^{\infty}\|$ [$\upmu$m/s]')
+cbar.solids.set_rasterized(True)
 ax = fig.axes[0]
-ax.set_title(f"Disturbance Field with $\\mathbf{{u}}^{{\\infty}}=-U\\mathbf{{\\hat{{x}}}}$ $\\upmu$m/s", fontsize=20)
+ax.set_title(f"Total Field with $\\mathbf{{u}}^{{\\infty}}=-U\\mathbf{{\\hat{{x}}}}$ $\\upmu$m/s", fontsize=18,y=1.04)
 ax.set_xlabel(r'$x$ [$\upmu$m]')
 ax.set_ylabel(r'$y$ [$\upmu$m]')
 ax.plot(mesh.isosurface[:,0],-mesh.isosurface[:,1],color='r')
@@ -107,7 +111,7 @@ ax.plot(mesh.isosurface[:,0],-mesh.isosurface[:,1],color='r')
 
 # ax.set_title(f"Shear Flow with $\\dot{{\\gamma}}={gamma_dot}$ s$^{{-1}}$", fontsize=20)
 # plt.show()
-fig.savefig(f"{plot_path}/Flowfield_sphere_u_x={U[0]}.pdf")
+fig.savefig(f"{plot_path}/Flowfield_sphere_u_x={U[0]}.pdf",dpi=600)
 fig.savefig(f"{plot_image_path}/Flowfield_sphere_u_x={U[0]}.png",dpi=600)
 
 plt.show()

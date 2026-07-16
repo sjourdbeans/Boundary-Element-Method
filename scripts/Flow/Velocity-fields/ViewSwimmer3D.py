@@ -20,17 +20,17 @@ flag1_dir = geom_dir / "flagella_1"
 flag2_dir = geom_dir / "flagella_2"
 
 seed_plane = pv.Plane(
-    center=(20.0, 0.0, 0.0),
+    center=(-1, 0.0, 0.0),
     direction=(-1.0, 0.0, 0.0),
     i_size=40.0,
     j_size=40.0,
-    i_resolution=30,
-    j_resolution=30,
+    i_resolution=20,
+    j_resolution=20,
 )
 
 GLYPH_RATE = (2, 2, 2)
-FLAG_RADIUS = 0.05
-STREAM_RADIUS = 0.03
+FLAG_RADIUS = 0.1
+STREAM_RADIUS = 0.05
 ARROW_SCALE_DEFAULT = 0.4
 Q_LEVEL_FRACTION = 0.2
 
@@ -103,13 +103,17 @@ def redraw():
     # -------------------------
     # Q-criterion isosurface
     # -------------------------
-    remove_actor("q_actor")
-
-    q = np.asarray(grid["qcriterion"])
-    qmax = float(np.nanmax(q))
-
-    # if np.isfinite(qmax) and qmax > 0:
-    #     q_level = Q_LEVEL_FRACTION * qmax
+    # remove_actor("q_actor")
+    # q = np.asarray(grid["qcriterion"])
+    # q_finite = q[np.isfinite(q) & (q > 0)]
+    # if len(q_finite) > 0:
+    #     q_upper = 10**3#float(np.percentile(q_finite, 95))
+    #     q_lower = 10**4#float(np.percentile(q_finite, 60))
+    #     q_clipped = np.clip(q, 0, q_upper)
+    #     grid["qcriterion"] = q_clipped
+        
+    #     q_level = float(np.percentile(q_finite[(q_finite < q_upper)], 95))
+    #     print(q_level)
     #     qsurf = grid.contour(
     #         isosurfaces=[q_level],
     #         scalars="qcriterion",
@@ -118,12 +122,11 @@ def redraw():
     #         state["q_actor"] = pl.add_mesh(
     #             qsurf,
     #             scalars="qcriterion",
-    #             clim=[0.0, qmax],
+    #             clim=[0, q_upper],
     #             opacity=0.35,
     #             cmap="plasma",
     #             scalar_bar_args={"title": "Q"},
     #         )
-
     # -------------------------
     # Velocity glyphs
     # -------------------------
@@ -173,7 +176,7 @@ def redraw():
                 scalars="umag",
                 cmap="turbo",
                 opacity=0.8,
-                clim=[0,1000]
+                clim=[0,800]
             )
 
     # -------------------------
@@ -199,8 +202,8 @@ def redraw():
     )
 
     print(f"Frame {frame}")
-    print("speed min/max:", np.min(grid['speed']), np.max(grid['speed']))
-    print("streamlines:", streamlines.n_points, streamlines.n_cells)
+    print("speed min/max:", np.min(grid['umag']), np.max(grid['umag']))
+    # print("streamlines:", streamlines.n_points, streamlines.n_cells)
 
     pl.render()
 

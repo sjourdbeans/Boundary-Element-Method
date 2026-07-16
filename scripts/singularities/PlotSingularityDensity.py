@@ -106,12 +106,12 @@ for i in range(3):
         poly = Poly3DCollection([verts], facecolors=color, edgecolors='k')
         ax.add_collection3d(poly)
 
-    ax.set_title(component[i] + r" Component of $\boldsymbol{\psi}$", pad=0)
+    ax.set_title(component[i] + r" Component of $\boldsymbol{\psi}/\mu$", pad=0)
     ax.view_init(elev=20, azim=30)
-    ax.set_xlabel(r'$\mathbf{\hat{x}}$ [$\upmu$m]', labelpad=15)
-    ax.set_ylabel(r'$\mathbf{\hat{y}}$ [$\upmu$m]', labelpad=15)
+    ax.set_xlabel(r'$x$ [$\upmu$m]', labelpad=15)
+    ax.set_ylabel(r'$y$ [$\upmu$m]', labelpad=15)
     if i ==0:
-        ax.set_zlabel(r'$\mathbf{\hat{z}}$ [$\upmu$m]', labelpad=15)
+        ax.set_zlabel(r'$z$ [$\upmu$m]', labelpad=15)
     
 
     ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
@@ -131,7 +131,7 @@ mappable.set_array(psi)
 fig.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.15)
 cbar_ax = fig.add_axes([0.25, 0.1, 0.5, 0.03])  # [left, bottom, width, height]
 cbar = fig.colorbar(mappable, cax=cbar_ax, orientation='horizontal')
-cbar.set_label(r"Singularity Strength [Pa]",labelpad=5)
+cbar.set_label(r"Singularity Strength [s$^{-1}$]",labelpad=5)
 fig.set_size_inches(17, 7)
 fig.savefig(f"{plot_path}/Singularity_density_combined.pdf")
 fig.savefig(f"{plot_image_path}/Singularity_density_combined.png", dpi=600)
