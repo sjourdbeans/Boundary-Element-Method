@@ -73,7 +73,7 @@ for frame in range(N_frames):
 
 
 chlamy = bem.FreeSwimmer(mesh,
-                        flagellum_1=flagellum_1,flagellum_2=flagellum_2, viscosity=1e-3)
+                        flagellum_1=flagellum_1,flagellum_2=flagellum_2)
 
 # chlamy = bem.Swimmer(mesh,
 #                     flagellum_1=flagellum_1,flagellum_2=flagellum_2)
