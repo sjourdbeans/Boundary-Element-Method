@@ -13,13 +13,11 @@ def random_quaternion():
     u1 = np.random.rand()
     u2 = np.random.rand()
     u3 = np.random.rand()
-
-    # Use a standard method to generate a random quaternion
     q = np.array([
-        np.sqrt(1 - u1) * np.sin(2 * np.pi * u2),
-        np.sqrt(1 - u1) * np.cos(2 * np.pi * u2),
-        np.sqrt(u1) * np.sin(2 * np.pi * u3),
-        np.sqrt(u1) * np.cos(2 * np.pi * u3)
+        np.sqrt(u1) * np.cos(2 * np.pi * u3),      # scalar part (w)
+        np.sqrt(1 - u1) * np.sin(2 * np.pi * u2),  # x
+        np.sqrt(1 - u1) * np.cos(2 * np.pi * u2),  # y
+        np.sqrt(u1) * np.sin(2 * np.pi * u3),      # z
     ])
     return q
 
