@@ -9,6 +9,7 @@ def plot_mesh(
     normal_scale: float = 0.2,
     face_alpha: float = 0.8,
     edge_alpha: float = 0.8,
+    ax=None
 ):
     """
     Quick visualization of a Mesh.
@@ -25,15 +26,21 @@ def plot_mesh(
         Face transparency of the surface.
     edge_alpha : float
         Edge transparency.
+    ax         : array
+        matplotlib axis object
     """
     if mesh.is_mat:
         panels = [mesh.panels[1:, :, k] for k in range(mesh.elements)]
     else:
         panels = [mesh.panels[k] for k in range(mesh.elements)]
 
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+    else:
+        fig = ax.figure
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    
 
     surf = Poly3DCollection(
         panels,
