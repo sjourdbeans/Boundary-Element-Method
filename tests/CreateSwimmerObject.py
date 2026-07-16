@@ -46,12 +46,12 @@ rotmat=np.array([[np.cos(theta), -np.sin(theta),0],
 lf=12
 
 R = coords.reshape(int(len(coords)/20),20,3)/7 * lf
-R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *lf
+# R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *lf
 # frame =5
 
-# R2 = R.copy()
-# R2[:,:,0] *= -1
-# R2[:,:,2] *= -1
+R2 = R.copy()
+R2[:,:,0] *= -1
+R2[:,:,2] *= -1
 
 # R = R[::2,:,:]
 # R2 =R2[::2,:,:]
@@ -79,18 +79,19 @@ mesh = bem.Mesh(chlamy_path)
 
 # loop over all frames to create flagellum objects
 for frame in range(N_frames):
-    frame = frame % N_frames
+    # frame = frame % N_frames
+    # frame=25
 
-    R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
+    R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([5,1,0])
 
-    R2[frame]=(rotmat @ (R2[frame]-R2[frame][0]).T  ).T+np.array([6,-2,0])
+    R2[frame]=(rotmat @ (R2[frame]-R2[frame][0]).T  ).T+np.array([5,-1,0])
 
     v= (rotmat @ V[frame].T ).T
     v2=(rotmat @ V2[frame].T).T
 
-    flag1 = bem.SlenderCoordinates(R[frame],0*v, flagellum_length=lf,flagellum_radius=0.2)
+    flag1 = bem.SlenderCoordinates(R[frame],v, flagellum_length=lf,flagellum_radius=0.2, smin=0)
     
-    flag2 = bem.SlenderCoordinates(R2[frame],0*v2, flagellum_length=lf,flagellum_radius=0.2)
+    flag2 = bem.SlenderCoordinates(R2[frame],v2, flagellum_length=lf,flagellum_radius=0.2, smin=0)
 
     flagellum_1.append(flag1)
     flagellum_2.append(flag2)
@@ -109,7 +110,7 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform_new.pkl", "wb") as f:
+with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_close.pkl", "wb") as f:
     pickle.dump(chlamy, f)
 
 
