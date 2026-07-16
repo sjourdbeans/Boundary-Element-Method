@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="0_shear_traj"
-#SBATCH --time=16:00:00
-#SBATCH --ntasks=48
-#SBATCH --cpus-per-task=6
+#SBATCH --time=14:00:00
+#SBATCH --ntasks=32
+#SBATCH --cpus-per-task=2
 #SBATCH --partition=compute
 #SBATCH --mem-per-cpu=3GB
 #SBATCH --account=research-me-pe
