@@ -57,7 +57,7 @@ lf=12
 
 R = coords.reshape(int(len(coords)/20),20,3)/7 * lf
 # R2 = coords_2.reshape(int(len(coords_2)/20),20,3)/ 7 *lf
-R[:,:,2]*=0#1#1.5
+# R[:,:,2]*=0#1#1.5
 # R2[:,:,2]*=0#1#1.5
 
 R2 = R.copy()
@@ -65,7 +65,7 @@ R2[:,:,0] *= -1
 R2[:,:,2] *= -1
 
 
-angle_x =4*np.pi/8# -5*np.pi/8
+angle_x =0# -5*np.pi/8
 
 def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray]:
     # no shear flow
@@ -96,7 +96,7 @@ def find_flow(t: float, x: np.ndarray)->tuple[np.ndarray, np.ndarray, np.ndarray
 
 mesh = bem.Mesh(chlamy_path)
 
-frame=18
+frame=15
 
 R[frame]=(rotmat @ (R[frame]-R[frame][0]).T ).T +np.array([6,2,0])
 R2[frame]=(rotmat @ (R2[frame]-R2[frame][0]).T  ).T+np.array([6,-2,0])
@@ -112,11 +112,14 @@ solution = chlamy.solve(find_flow, 1)
 
 f1 = solution.f1[0]
 f1 = f1.reshape(int(len(f1)/3),3)
+# f1[:,0]*=0
+# f1[:,1]*=0
 
 
 f2 = solution.f2[0]
 f2 = f2.reshape(int(len(f2)/3),3)
-
+# f2[:,0]*=0
+# f2[:,1]*=0
 
 # print(f"f1:{np.mean(f1,axis=0)}\n f2: {np.mean(f2,axis=0)}")
 # print(f"Total force: {np.mean(f1 + f2,axis=0)}")
@@ -257,13 +260,13 @@ quiv = 1
 flag_quivers["1"] = ax.quiver(
     r1[::quiv, 0], r1[::quiv, 1], r1[::quiv, 2],
     f1[::quiv, 0], f1[::quiv, 1], f1[::quiv, 2],
-    color="b"
+    color="b",length=1
 )
 
 flag_quivers["2"] = ax.quiver(
     r2[::quiv, 0], r2[::quiv, 1], r2[::quiv, 2],
     f2[::quiv, 0], f2[::quiv, 1], f2[::quiv, 2],
-    color="b"
+    color="b",length=1
 )
 
 plt.axis('equal')
