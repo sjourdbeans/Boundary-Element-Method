@@ -25,7 +25,7 @@ mpl.rcParams["axes.labelsize"]=15
 mpl.rcParams["axes.titlesize"]=15
 mpl.rcParams["legend.fontsize"]=13
 
-shear_rate = 12
+shear_rate = 6
 scale = 1
 # fileswimmer = "/scratch/sbuitjes/swimmer_objects/chlamy/chlamy-3d/chlamy_free_1280.pkl"
 fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl"
@@ -37,9 +37,9 @@ with open(fileswimmer, "rb") as f:
 # outfile=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/rigid-particles/ratio=1.25/distributions/shear={shear_rate}_N=4500_periods_140.npz"
 # outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-2d/non-symmetric/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
 # outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/non-symmetric/scale-out-of-plane/scale={scale}_shear={shear_rate}_N=4500_periods_140.npz"
-outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
+# outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
 # outfile=f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/zero_thrust/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
-# outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats/distributions/mesh=320_shear={shear_rate}_N=4500_periods_140.npz"
+outfile = f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats/distributions/mesh=320/shear={shear_rate}_N=4500_periods_140.npz"
 outdir =  Path(outfile)
 
 
@@ -82,7 +82,7 @@ cbar = plt.colorbar(pcm, ax=ax)
 cbar.set_label("PDF")
 
 ax.set_ylabel(r"In-Plane Angle $\phi / \pi$")
-ax.set_xlabel(r"Vorticity Angle $\theta /s/Master-Thesis-Project/plots/Orientations/rigid-particles/ratio=1.25/Distribution_mesh=320_shear={shear_rate}_N=4500_periods_{periods}.pdf")
+ax.set_xlabel(r"Vorticity Angle $\theta$")
 # plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesi \pi$")
 ax.set_title(
     f"Orientational Distribution Chlamy Symmetric with $\\dot{{\\gamma}}={shear_rate}$ s$^{{-1}}$"
