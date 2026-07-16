@@ -76,33 +76,22 @@ def icosphere(subdiv=2,pole_density=1):
 
 if __name__ == "__main__":
 
-    # a_arr=np.arange(0.1,1,0.05)
     # -------- prolate spheroid elongated along x (uniform mesh) --------
-    # a = 3.6   # short radii (y,z)
+    # semi-minor axis
     a=4
-    # for a in a_arr:
-    # c = 21  # long radius (x)
+    
+    # semi-major axis
     c= 5
-    subdiv = 3  # 20*4^2 = 320 triangles
+    subdiv = 2  # 20*4^2 = 320 triangles
 
     buffer_factor =0.2
     delta_x =0.05
     delta_r =0.1
-    # a+=delta
-    # c+=delta
-
-
    
-    
+
 
     p_unit, t = icosphere(subdiv=subdiv,pole_density=1)
 
-    # mesh = trimesh.Trimesh(vertices=p_unit, faces=t)
-    # # mesh_simplified = mesh.simplify_quadric_decimation(face_count=800)
-
-    # a, c = 0.5, 2
-    # p = mesh_simplified.vertices * np.array([c, a, a])
-    # t = mesh_simplified.faces
 
     p = p_unit * np.array([c, a, a])  # scale to spheroid
 
@@ -112,15 +101,18 @@ if __name__ == "__main__":
     x = np.linspace(-c-delta_x, c+delta_x, nz)  # axial coordinate along the long axis (x)
     
 
-
+    # This part is not really required for the solver, but it uses it to identify the shape of the mesh for plotting
+    # such that the values inside the mesh are set to 0.  
     r = (a+delta_r) * np.sqrt(np.clip(1.0 - (x/(c+delta_x))**2, 0.0, 1.0))  # radius in the yz-plane
     pv = np.column_stack([x,r])
     pv = np.vstack((pv,np.column_stack([x[::-1][1:],-r[::-1][1:]])))
 
     print("Vertices:", p.shape[0], "Triangles:", t.shape[0]) 
 
-    # from scipy.io import savemat 
     # Can be changed to npz file later
+
+    # use .mat file to remain consistent with the old code, and it is easy to verify.
+    # a .npz file also works
     savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N={t.shape[0]}.mat",
                 {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
     # savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Euglena/Euglena_Rossi_N={t.shape[0]}.mat",
