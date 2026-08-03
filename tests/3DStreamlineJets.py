@@ -92,6 +92,7 @@ streamlines_3d = grid.streamlines_from_source(
 )
 
 if streamlines_3d.n_points > 0:
+    # I am dividing by 1800 because in the simulation for some reason I multiplied it with 1800
     streamlines_3d["umag"] = np.linalg.norm(np.array(streamlines_3d["u"]) / 1800, axis=1)
 
 stream_tube_3d = None
