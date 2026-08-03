@@ -19,14 +19,32 @@ body_mesh_path = geom_dir / "body_mesh.vtp"
 flag1_dir = geom_dir / "flagella_1"
 flag2_dir = geom_dir / "flagella_2"
 
-seed_plane = pv.Plane(
-    center=(-1, 0.0, 0.0),
-    direction=(-1.0, 0.0, 0.0),
-    i_size=40.0,
-    j_size=40.0,
-    i_resolution=20,
-    j_resolution=20,
-)
+
+def make_cluster(center, radius=0.7, n=4):
+    offsets = np.linspace(-radius, radius, n)
+    pts = []
+    for dx in offsets:
+        for dy in offsets:
+            for dz in offsets:
+                pts.append(center + np.array([dx, dy, dz]))
+    return np.array(pts)
+
+cluster_pos_1 = make_cluster(np.array([0.0,  8.0, -1.0]))
+cluster_pos_2 = make_cluster(np.array([0.0,  8.0,  1.0]))
+cluster_neg_1 = make_cluster(np.array([0.0, -8.0, -1.0]))
+cluster_neg_2 = make_cluster(np.array([0.0, -8.0,  1.0]))
+
+seed_3d = pv.PolyData(np.vstack([cluster_pos_1, cluster_pos_2, cluster_neg_1, cluster_neg_2]))
+
+
+# seed_plane = pv.Plane(
+#     center=(-1, 0.0, 0.0),
+#     direction=(-1.0, 0.0, 0.0),
+#     i_size=40.0,
+#     j_size=40.0,
+#     i_resolution=20,
+#     j_resolution=20,
+# )
 
 GLYPH_RATE = (2, 2, 2)
 FLAG_RADIUS = 0.1
@@ -66,7 +84,7 @@ state = {
     "seed_actor": None,
 }
 
-state["seed_actor"] = pl.add_mesh(seed_plane, style="wireframe", color="black")
+state["seed_actor"] = pl.add_mesh(seed_3d, style="wireframe", color="black")
 
 
 # =========================
@@ -158,7 +176,7 @@ def redraw():
     remove_actor("stream_actor")
 
     streamlines = grid.streamlines_from_source(
-        seed_plane,
+        seed_3d,
         vectors="u",
         max_length=100.0,
         initial_step_length=0.1,
@@ -231,7 +249,7 @@ pl.add_key_event("Left", prev_frame)
 
 # pl.add_slider_widget(
 #     callback=update_glyph_scale,
-#     rng=[0.1, 20.0],
+#     rng=[0.1, 20.0],text}
 #     value=ARROW_SCALE_DEFAULT,
 #     title="Arrow scale",
 #     pointa=(0.35, 0.1),
