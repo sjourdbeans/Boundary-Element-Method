@@ -26,7 +26,7 @@ mpl.rcParams["axes.labelsize"] = 15
 mpl.rcParams["axes.titlesize"] = 15
 mpl.rcParams["legend.fontsize"] = 13
 
-shear_rate =9
+shear_rate =35
 
 elements = 320  
 ratio = 5.8
@@ -37,17 +37,17 @@ h=0.6
 drho=30
 
 N_swimmers=4500#4500
-periods = 400#400
+periods = 140#400
 
 # periods=400
 fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d_waveform.pkl"
 # fileswimmer = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Euglena/Rossi/Free/Euglena_N=320_experimental.pkl"
 # main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/non-symmetric/gravitaxis/mesh={elements}"
-main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/non-symmetric/experimental"
+# main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/non-symmetric/experimental"
 # main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/vary_quats"
 # main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/scale-out-of-plane"
 # main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/non-symmetric/scale-amplitude"
-# main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/gravitaxis"
+main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric"
 # main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/zero_thrust"
 # main_folder = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/rigid-particles/ratio=5.8/mesh=320"
 # main_folder =f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/trajectories/chlamy-3d/symmetric/gravitaxis"
@@ -69,7 +69,7 @@ output_file = f"{output_folder}/mesh={elements}_shear={shear_rate}_N={N_swimmers
 
 
 discard_beats  = 0
-pdf_last_beats =  74#int(periods) if periods>100 else periods # how many final beats to use for the PDF
+pdf_last_beats = 70# int(periods) if periods>100 else periods # how many final beats to use for the PDF
 n_psi_bins     = 40
 n_th_bins      = 20
 n_psi_pdf      = 240
@@ -237,34 +237,54 @@ cmap = LinearSegmentedColormap.from_list(
 # cmap = plt.get_cmap('turbo').copy()
 cmap.set_bad(color='white')
 pcm = ax.pcolormesh(psi_edges_pdf, th_edges_pdf, PDF_masked.T,
-                    shading='auto', cmap=cmap,vmax=0.4)
+                    shading='auto', cmap=cmap,vmax=0.4, rasterized=True)
 cbar = plt.colorbar(pcm, ax=ax)
+cbar.solids.set_rasterized(True)
 cbar.set_label("PDF")
 
 # Streamlines on top
-ax.streamplot(
+# ax.streamplot(
+#     psi_centers, th_centers,
+#     U.T, V.T,
+#     color='black',
+#     linewidth=1.0,
+#     density=1.5,
+#     arrowsize=1.2,
+# )
+from matplotlib.patches import FancyArrowPatch
+import matplotlib.patheffects as pe
+from matplotlib.colors import LinearSegmentedColormap
+
+sp = ax.streamplot(
     psi_centers, th_centers,
     U.T, V.T,
     color='black',
-    linewidth=1.0,
+    linewidth=1,
     density=1.5,
-    arrowsize=1.2,
+    arrowsize=1.2
 )
 
-ax.set_xlabel(r"$\Psi$")
-ax.set_ylabel(r"$\Phi$")
+outline = [pe.Stroke(linewidth=1.5, foreground='white'), pe.Normal()]
+sp.lines.set_path_effects(outline)
+for patch in ax.patches:
+    if isinstance(patch, FancyArrowPatch):
+        patch.set_path_effects(outline)
+
+ax.set_xlabel(r"$\Psi$ [rad]")
+ax.set_ylabel(r"$\Phi$ [rad]")
 ax.set_xlim(-np.pi, np.pi)
 ax.set_ylim(-np.pi/2, np.pi/2)
 ax.set_xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
 ax.set_xticklabels([r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"])
 ax.set_yticks([-np.pi/2, 0, np.pi/2])
 ax.set_yticklabels([r"$-\pi/2$", r"$0$", r"$\pi/2$"])
-ax.set_title(f"Orientational Distribution, $\\dot{{\\gamma}}={shear_rate}$ rad s$^{{-1}}$ over {pdf_last_beats} Beats")
+ax.set_title(f"Orientational Distribution for $\\tilde{{\\dot{{\\gamma}}}}={round(shear_rate/7.404,2)}$")
 # ax.set_title(f"Orientational Distribution Rigid Particles with $\\alpha$={ratio} and $\\dot{{\\gamma}}={shear_rate}$ s$^{{-1}}$")
 ax.grid(alpha=0.2)
 
 plt.tight_layout()
-# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/Orientations/chlamy/3D/symmetric/Distributions/Distribution_shear={shear_rate}_period={periods}_N={N_swimmers}.pdf")
+plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/presentation-plots/Distribution_shear={shear_rate}.pdf",dpi=600, bbox_inches='tight')
+# plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/Orientations/chlamy/3D/symmetric/Distributions/Distribution_shear={shear_rate}_period={periods}_N={N_swimmers}.pdf",dpi=600, bbox_inches='tight')
 # plt.savefig(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plot_images/Orientations/chlamy/3D/symmetric/Distributions/Distribution_shear={shear_rate}_period={periods}_N={N_swimmers}.png", dpi=600)
 # plt.show()
 
