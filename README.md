@@ -41,11 +41,14 @@ From the repository root, create the environment and install the package:
 ```bash
 uv sync
 ```
-
-Run Python or a script inside that environment with `uv run`:
+To check the installation, run:
 
 ```bash
-uv run python
+uv run python scripts/check_install.py
+```
+Run a script inside that environment with `uv run`:
+
+```bash
 uv run python path/to/your_script.py
 ```
 
