@@ -18,8 +18,8 @@ class BaseSystem:
     However, this class is not called by itself but it is instead used as a parent class.
     
     For example in stokes_problems.py there are two child classes of BaseSystem.
-        - ResistanceProblem
-        - MobilityProblem
+        - FixedParticle
+        - FreeParticle
     This means that when one of these classes is called it also needs the ``mesh`` argument,
     but then it also has access to all attributes and methods of BaseSystem.
 
@@ -229,6 +229,7 @@ class BaseSystem:
         # Initialise torque tensor (equivalent to r x psi = R psi,  so R = [r] x )
         torque_tensor = np.zeros((3,3))
 
+        # Numerical Integration
         torque_tensor[0,1] = -Wx @ zz @ Wy
         torque_tensor[0,2] =  Wx @ yy @ Wy
         torque_tensor[1,2] = -Wx @ xx @ Wy
