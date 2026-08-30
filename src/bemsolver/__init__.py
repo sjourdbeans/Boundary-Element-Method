@@ -14,8 +14,8 @@ from .swimmers import Swimmer, FreeSwimmer
 
 __all__ = [
     "Mesh",
-    "MobilityProblem",
-    "ResistanceProblem",
+    "FixedParticle",
+    "FreeParticle",
     "FlowStokes",
     "Solution",
     "SlenderCurvTors",
@@ -25,4 +25,4 @@ __all__ = [
     "FreeSwimmer"
     ]
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
