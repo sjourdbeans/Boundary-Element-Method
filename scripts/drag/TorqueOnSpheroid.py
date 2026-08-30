@@ -1,7 +1,7 @@
 from scipy.io import loadmat
 from dataclasses import dataclass, field
 import numpy as np
-import bemsolver as BEM
+import bemsolver as bem
 import os
 
 folder_path = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/spheroid-variation/new-variation"
@@ -32,10 +32,10 @@ torque_z = np.zeros(len(files))
 b_arr =np.zeros(len(files))
     
 for i, file in enumerate(files):
-    mesh=BEM.Mesh(file)
+    mesh=bem.Mesh(file)
     b_arr[i]=mesh.b
 
-    sys=BEM.ResistanceProblem(mesh)
+    sys=bem.FixedParticle(mesh)
 
     psi, force, torque = sys.solve(U,W)
     torque_z[i]=torque[2]
