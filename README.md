@@ -11,6 +11,7 @@ Clone the repository and enter it:
 git clone https://github.com/sjourdbeans/Boundary-Element-Method.git
 cd Boundary-Element-Method
 ```
+To use the code in this project, we must first setup a virtual environment that includes the correct python version and packages.
 
 This project is set up for [uv](https://docs.astral.sh/uv/), which creates the virtual environment and installs the locked project dependencies in one command. Python 3.10 or newer is required.
 
@@ -41,12 +42,12 @@ From the repository root, create the environment and install the package:
 ```bash
 uv sync
 ```
-To check the installation, run:
+Check the installation by running:
 
 ```bash
 uv run python scripts/check_install.py
 ```
-Run a script inside that environment with `uv run`:
+Then you can run a script inside the virtual environment with `uv run`:
 
 ```bash
 uv run python path/to/your_script.py
