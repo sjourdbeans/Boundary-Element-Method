@@ -15,7 +15,7 @@ class Mesh:
 
     Meshfile
     ---------------
-    filepath    : The filetype of the meshfile can be .mat, .npz
+    filepath    : Path to a `.mat`, `.npz`, or Gmsh `.msh` mesh file.
 
 
     """
@@ -27,10 +27,12 @@ class Mesh:
 
         self.a = None
         self.b = None
+        self.isosurface = None
 
-        if self.filepath.split(".")[-1]=="mat":
+        suffix = self.filepath.rsplit(".", 1)[-1].lower()
+
+        if suffix == "mat":
             self.is_mat=True
-        # Maybe add a condition for filetypes like npz or other common mesh types.
             self.meshfile       =loadmat(self.filepath)
 
             self.isosurface     =self.meshfile["pv"]      # Analytic description of the surface of the mesh, i.e. the distance from the centerline
@@ -42,7 +44,30 @@ class Mesh:
 
             self.elements   =np.shape(self.panels)[2]
 
-        elif self.filepath.split(".")[-1]=="msh":
+        elif suffix == "npz":
+            self.meshfile = np.load(self.filepath)
+
+            if "panels" not in self.meshfile:
+                raise ValueError("An .npz mesh must contain a 'panels' array.")
+
+            self.panels = self.meshfile["panels"]
+            self.isosurface = self.meshfile.get("pv", None)
+            self.a = self.meshfile.get("a", None)
+            self.b = self.meshfile.get("b", None)
+
+            # Accept both the legacy MATLAB layout and a standard triangle array.
+            if self.panels.ndim != 3:
+                raise ValueError("'panels' must have shape (4, 3, N) or (N, 3, 3).")
+            if self.panels.shape[:2] == (4, 3):
+                self.is_mat = True
+                self.elements = self.panels.shape[2]
+            elif self.panels.shape[1:] == (3, 3):
+                self.is_mat = False
+                self.elements = self.panels.shape[0]
+            else:
+                raise ValueError("'panels' must have shape (4, 3, N) or (N, 3, 3).")
+
+        elif suffix == "msh":
             import gmsh
             gmsh.initialize()
             gmsh.open(self.filepath)
@@ -61,15 +86,16 @@ class Mesh:
             self.panels = nodes[triangles_fixed]
             self.elements   = np.shape(self.panels)[0]
 
-                   # Minor axis of ellipsoid
+        else:
+            raise ValueError("Unsupported mesh format. Use a .mat, .npz, or .msh file.")
 
         if self.a is None or self.b is None:
             warnings.warn(f"Values for a and b are not stored in meshfile, assign them yourself using 'instance_name.a=value'. \n Also assign volume by 'instance_name.parameters[\"volume\"]=value' if needed.",
                         category=UserWarning,
                         stacklevel=3)
         else:
-            self.a =self.a[0][0]
-            self.b =self.b[0][0]
+            self.a =np.asarray(self.a).squeeze().item()
+            self.b =np.asarray(self.b).squeeze().item()
 
         self.normals,self.centroids=self.load_panels()
 
