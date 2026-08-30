@@ -115,5 +115,10 @@ if __name__ == "__main__":
     # a .npz file also works
     savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N={t.shape[0]}.mat",
                 {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
+
+    # npz file
+    # np.savez(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N={t.shape[0]}-test.npz",
+    #      p=p, t=t+1, panels=panels, pv=pv, a=c, b=a)
+    
     # savemat(f"/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Euglena/Euglena_Rossi_N={t.shape[0]}.mat",
     #         {"p": p, "t": t+1, "panels": panels, "pv": pv, "a":c,"b":a})
