@@ -29,10 +29,10 @@ def make_cluster(center, radius=0.7, n=4):
                 pts.append(center + np.array([dx, dy, dz]))
     return np.array(pts)
 
-cluster_pos_1 = make_cluster(np.array([0.0,  8.0, -1.0]))
+cluster_pos_1 = make_cluster(np.array([0.0,  8.0, -4.0]))
 cluster_pos_2 = make_cluster(np.array([0.0,  8.0,  1.0]))
 cluster_neg_1 = make_cluster(np.array([0.0, -8.0, -1.0]))
-cluster_neg_2 = make_cluster(np.array([0.0, -8.0,  1.0]))
+cluster_neg_2 = make_cluster(np.array([0.0, -8.0,  4.0]))
 
 seed_3d = pv.PolyData(np.vstack([cluster_pos_1, cluster_pos_2, cluster_neg_1, cluster_neg_2]))
 

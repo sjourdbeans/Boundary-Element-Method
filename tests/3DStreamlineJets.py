@@ -51,10 +51,10 @@ def make_cluster(center, radius=0.7, n=4):
                 pts.append(center + np.array([dx, dy, dz]))
     return np.array(pts)
 
-cluster_pos_1 = make_cluster(np.array([0.0,  8.0, -1.0]))
+cluster_pos_1 = make_cluster(np.array([0.0,  7.0, -4.0]))
 cluster_pos_2 = make_cluster(np.array([0.0,  8.0,  1.0]))
 cluster_neg_1 = make_cluster(np.array([0.0, -8.0, -1.0]))
-cluster_neg_2 = make_cluster(np.array([0.0, -8.0,  1.0]))
+cluster_neg_2 = make_cluster(np.array([0.0, -7.0,  4.0]))
 
 seed_3d = pv.PolyData(np.vstack([cluster_pos_1, cluster_pos_2, cluster_neg_1, cluster_neg_2]))
 
@@ -162,5 +162,5 @@ cbar.set_label(r"$\|\mathbf{u}\|$ ($\upmu$m/s)")
 # cbar.ax.tick_params(labelsize=10)
 
 # fig.savefig("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plot_images/Flowfield/velocity-fields/free-swimmer-3D-streamlines.png", dpi=300, bbox_inches="tight")
-# fig.savefig("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/Flowfield/velocity-fields/free-swimmer-3D-streamlines.pdf", dpi=600, bbox_inches="tight")
+fig.savefig("/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/plots/presentation-plots/free-swimmer-3D-streamlines.pdf", dpi=600, bbox_inches="tight")
 plt.show()
