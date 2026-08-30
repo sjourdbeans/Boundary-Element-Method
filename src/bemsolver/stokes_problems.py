@@ -39,7 +39,7 @@ class FixedParticle(BaseSystem):
     >>> import numpy as np
 
     >>> mesh = bem.Mesh("/path_to_mesh/file.mat")
-    >>> sys  = bem.ResistanceProblem(mesh) 
+    >>> sys  = bem.FixedParticle(mesh) 
 
     >>> # Background flow
 
@@ -114,8 +114,8 @@ class FixedParticle(BaseSystem):
 class FreeParticle(BaseSystem):
     """
     This child class inherits all methods from BaseSystem to calculate the mobility matrix and other necessary
-    information to solve the mobility problem of an object in a flow. The mobility matrix is constructed in the
-    same way as for the ResistanceProblem by finding the interactions of each element on the other elements.
+    information to solve for the hydrodynamics of a free particle in a flow. The mobility matrix is constructed in the
+    same way as for the FixedParticle by finding the interactions of each element on the other elements.
     To find the Rigid Body Motion (RBM) of the object, we must set the constraints that the particle is
     force and torque free. Furthermore, we need to include the RBM of the particle (U_t + omega x r).
     Since we have a no slip condition we get the following equations: \n
@@ -169,7 +169,7 @@ class FreeParticle(BaseSystem):
     >>>
     >>>        W[0] = 0
     >>>        W[1] = 0
-    >>>        W[2] = -gamma_dot/2
+    >>>        W[2] = -gamma_dot
     >>>
     >>>        # Rate of strain tensor
     >>>        E = gamma_dot/2*np.array([[0,1,0],
@@ -178,7 +178,7 @@ class FreeParticle(BaseSystem):
     >>>        return U, W, E
     >>>
 
-    >>> sys  = bem.MobilityProblem(mesh) 
+    >>> sys  = bem.FreeParticle(mesh) 
     >>> initial_orientation = np.array([0,0,0])
     >>> initial_position    = np.array([0,0,0])
     >>> dt=0.01
