@@ -82,7 +82,7 @@ src/bemsolver/
 |-- stokes_problems.py
 |   |-- class FixedParticle(BaseSystem)
 |   |   |-- solve(U, W, E)
-|   |   |   `-- solves resistance problem for a clamped particle
+|   |   |   `-- solves hydrodynamics for a clamped particle
 |   |   `-- plot_singularity_density()
 |   |       `-- plots the solved double-layer density components
 |   |
@@ -136,7 +136,7 @@ src/bemsolver/
 |   |   |-- set_boundary_condition(U, W, E)
 |   |   |   `-- applies background flow minus prescribed flagellar velocity
 |   |   |-- calc_mobility()
-|   |   |   `-- computes Tornberg-Shelley slender-body matrix
+|   |   |   `-- computes Tornberg-Shelley slender-body matrix (originally Keller and Rubinow)
 |   |   |-- calc_interaction(evaluation_points)
 |   |   |   `-- computes flow influence from flagellum to other points
 |   |   `-- calc_r_cross_matrix(X_center)
@@ -327,7 +327,7 @@ Solution
 ## Conceptual Notes
 
 - `BaseSystem` is the core panel-BEM implementation for the cell body. Child
-  classes change the problem setup: fixed resistance solve, free RBM solve,
+  classes change the problem setup: fixed particle solve, free RBM solve,
   off-surface flow evaluation, fixed swimmer solve, or free swimmer solve.
 - `SlenderBody` is the core slender-body implementation for flagella. Child
   classes only differ in how the flagellar centerline is constructed.
@@ -338,3 +338,8 @@ Solution
 - The vectorized kernels in `kernels.py` are the active high-performance path
   used by `BaseSystem`; the non-vectorized numba versions are kept as reference
   or fallback code and are marked unused in the source.
+
+# Future Improvements
+Not all the code is as optimised as I'd like it to be, so there is room for improvement. Furthermore, it would be interesting to add more features or maybe improve the syntax. Here I will list some of the aspects which can be improved which might help future students (or other people that want to fork this repository) further develop the code.
+
+Add list.
