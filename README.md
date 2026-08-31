@@ -105,7 +105,7 @@ mesh.plot_mesh()  # optional visual check
 
 | Parameter | Definition | Standard Value |
 | --- | --- | --- |
-| `XG` | Centre of the centreline, calculated with the maximum and minimum x coordinate of the mesh. | (max(x)+ min(x))/2 |
+| `XG` | Centre of the centreline, calculated with the maximum and minimum x coordinate of the mesh. | 0.5*(max(x)+ min(x)) |
 | `line_scale` | Scaling factor to decrease the length of the line singularity inside the mesh. A factor of 0.9 means that the line does not reach the maximum and minimum point of the mesh. A factor of 0 means a point singularity (similar to the completion flow of Power and Miranda). | 0.9 |
 | `Delta_rho` |  Density difference in kg/m^3 between particle/cell and fluid medium. | 0 |
 | `medium_rho` | Density of the fluid medium in kg/m^3 | 1000 |
