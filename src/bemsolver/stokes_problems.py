@@ -157,7 +157,7 @@ class FreeParticle(BaseSystem):
     >>> mesh = bem.Mesh("/path_to_mesh/file.mat")
     >>> gamma_dot = 1
     >>>
-    >>> def find_flow(x):
+    >>> def find_flow(t,x):
     >>>        U = np.zeros(3)
     >>>
     >>>        U[0] = gamma_dot * x[1]
