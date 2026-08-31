@@ -2,6 +2,8 @@
 
 This is a repository which includes a Boundary Element Method (BEM) code to calculate the flow around a microswimmer and compute its rigid body motion. This code solves the double layer density integral equation of the second kind described by Power and Miranda with the completion flow of Keaveny and Shelley and includes the flagella using Slender Body Theory. 
 
+This python code was based on old matlab code which can be found in [this branch](https://github.com/sjourdbeans/Boundary-Element-Method/tree/Old-Matlab-version).
+
 
 ## Quick start
 
