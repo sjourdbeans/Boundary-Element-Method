@@ -8,33 +8,35 @@ import matplotlib as mpl
 
 # ==============Plotting settings==================
 
-mpl.rcParams['xtick.direction'] = 'in'
-mpl.rcParams['ytick.direction'] = 'in'
-mpl.rcParams['xtick.top'] = True
-mpl.rcParams['ytick.right'] = True
+# mpl.rcParams['xtick.direction'] = 'in'
+# mpl.rcParams['ytick.direction'] = 'in'
+# mpl.rcParams['xtick.top'] = True
+# mpl.rcParams['ytick.right'] = True
 
-mpl.rcParams['xtick.minor.visible'] = True
-mpl.rcParams['ytick.minor.visible'] = True
+# mpl.rcParams['xtick.minor.visible'] = True
+# mpl.rcParams['ytick.minor.visible'] = True
 
-os.environ["PATH"] += ":/usr/bin"
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams["font.family"]= "Palatino"
-mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
-mpl.rcParams["xtick.labelsize"]=13
-mpl.rcParams["ytick.labelsize"]=13
-mpl.rcParams["axes.labelsize"]=15
-mpl.rcParams["axes.titlesize"]=15
-mpl.rcParams["legend.fontsize"]=13
+# os.environ["PATH"] += ":/usr/bin"
+# mpl.rcParams['text.usetex'] = True
+# mpl.rcParams["font.family"]= "Palatino"
+# mpl.rcParams["text.latex.preamble"]+= r"\usepackage{amsmath}"
+# mpl.rcParams["xtick.labelsize"]=13
+# mpl.rcParams["ytick.labelsize"]=13
+# mpl.rcParams["axes.labelsize"]=15
+# mpl.rcParams["axes.titlesize"]=15
+# mpl.rcParams["legend.fontsize"]=13
 
 #===================================================
 
 
 
-chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
-# chlamy_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/sphere_chlamy_N=320.mat"
+mesh_path       = "/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/mesh/Chlamy/chlamy_N=320.mat"
 
-movie_data="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_T_avg_int.txt"
-movie_data_2="/home/sjoerd-buitjes/University/Master-Thesis/BEM/Boundary-Element-Method/datafiles/waveform/Chlamy-3D/CC125_4_2_C_avg_int.txt"
+save_path = "/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d.pkl"
+
+movie_data="datafiles/waveform/Chlamy-3D/CC125_4_2_T_avg_int.txt"
+movie_data_2="datafiles/waveform/Chlamy-3D/CC125_4_2_C_avg_int.txt"
+
 coords =np.loadtxt(movie_data)
 coords_2 =np.loadtxt(movie_data_2)
 
@@ -77,7 +79,7 @@ flagellum_2 = []
 
 N_frames = len(R)
 
-mesh = bem.Mesh(chlamy_path)
+mesh = bem.Mesh(mesh_path)
 
 
 # loop over all frames to create flagellum objects
@@ -111,7 +113,7 @@ chlamy = bem.FreeSwimmer(mesh,
 # ===================Save option 1=====================
 
 # Save swimmer object without results (large file)
-with open(f"/home/sjoerd-buitjes/University/Master-Thesis/Master-Thesis-Project/Data/BEM/python-BEM/swimmer-objects/Chlamy/free/chlamy_free_3d.pkl", "wb") as f:
+with open(save_path, "wb") as f:
     pickle.dump(chlamy, f)
 
 
