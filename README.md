@@ -234,7 +234,7 @@ import bemsolver as bem
 import pickle
 
 # Add path to your swimmer object file 
-swimmer_object = "path/to/swimmer_object.pkl
+swimmer_object = "path/to/swimmer_object.pkl"
 
 with open(swimmer_object, 'rb') as file:
     chlamy = pickle.load(file)
