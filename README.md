@@ -246,7 +246,9 @@ def find_flow(t,x):
    return np.zeros(3), np.zeros(3), np.zeros((3,3))
 
 dt = 400*10**(-6)
-solution = chlamy.RBM_over_time(dt,10*(chlamy.N_frames)*dt, find_flow,initial_orientation=np.array([0, 0, 0]))
+beats = 10
+
+solution = chlamy.RBM_over_time(dt,beats * chlamy.N_frames * dt, find_flow,initial_orientation=np.array([0, 0, 0]))
 ```
 
 `gmsh`, `pyvista`, and `mpi4py` are project dependencies. If `uv sync` reports a platform-specific build problem, update `uv` first and consult the dependency's installation instructions; the solver itself does not require MPI unless your own workflow uses it.
