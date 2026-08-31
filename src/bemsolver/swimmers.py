@@ -163,7 +163,7 @@ class Swimmer(BaseSystem):
                     [Mhf1, Mf1]
                 ])
                 # save the LU decomposition to solve the matrix equations later
-                self.LU_matrix[i], self.piv_matrix[i] = lu_factor(swimmer_matrix)
+                self.LU_matrix[i], self.piv_vector[i] = lu_factor(swimmer_matrix)
 
         
         else:
