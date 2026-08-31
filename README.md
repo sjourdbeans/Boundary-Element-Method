@@ -140,7 +140,7 @@ print("torque:", torque)
 
 ### Free particle: translation and rotation over time
 
-Use `FreeParticle` for a force- and torque-free body. Supply a function returning `(U, W, E)` for the current position. `RBM_over_time` returns a `Solution` object with the time, positions, rotation matrices, quaternions, velocities, angular velocities, and double-layer density history.
+Use `FreeParticle` for a force- and torque-free body. Supply a function that takes the current simulation time `t` and position of the particle `x` and returns `(U, W, E)`. By including the `t` argument, the background flow can be time dependent. `RBM_over_time` returns a `Solution` object with the time, positions, rotation matrices, quaternions, velocities, angular velocities, and double-layer density history.
 
 `RBM_over_time` takes either the Euler angles pitch, yaw, and roll as initial orientation with `initial_orientation` or as a quaternion unit vector with `initial_quaternion`.
 
@@ -193,7 +193,20 @@ velocity = field.calc_vector_field(psi, U, W, E)
 
 ### Flagella and swimmers
 
-For a centerline already represented by Cartesian points, construct each frame with `bem.SlenderCoordinates`. `bem.SlenderAngles` and `bem.SlenderCurvTors` are available when the waveform is given as angles or curvature/torsion instead. Pass one or two sequences of frame objects to `bem.Swimmer` (fixed body) or `bem.FreeSwimmer` (free swimming), then call `solve` or `RBM_over_time`.
+For a centerline already represented by Cartesian points, construct each frame with `bem.SlenderCoordinates`. `bem.SlenderAngles` and `bem.SlenderCurvTors` are available when the waveform is given as angles or curvature/torsion instead. A slender rod with 30 elements along the x-axis with zero material velocity is then defined as
+
+```python
+import numpy as np
+import bemsolver as bem
+
+N=30
+x_points=np.linspace(0, 1 , N+1)
+
+rod_points = np.vstack([x_points, np.zeros_like(x_points), np.zeros_like(x_points)]).T
+rod = bem.SlenderCoordinates(points=rod_points, velocity=np.zeros_like(rod_points), flagellum_radius=0.2, flagellum_length=1)
+```
+
+Pass one list or two lists containing multiple flagella objects to `bem.Swimmer` (fixed body) or `bem.FreeSwimmer` (free swimming), then call `solve` or `RBM_over_time`.
 
 The most complete working examples are in:
 
@@ -207,9 +220,33 @@ Many scripts were written for specific research runs and contain absolute local 
 ## Running and troubleshooting
 
 Run a modified example from the repository root so that relative paths resolve consistently:
+To create a swimmer object (for example of Chlamydomonas), edit the directory to your mesh and where to save the swimmer object in `scripts/Free-Swimmers/CreateSwimmerObject.py` and run
 
 ```bash
-uv run python scripts/orbits/CalcOrientationInShearFlow.py
+uv run python scripts/Free-Swimmers/CreateSwimmerObject.py
+```
+
+This swimmer object can then be used to easily simulate trajectories by continuously looping the waveform. The trajectory (and orientation, forces, double-layer density) can be found once again with the function `RBM_over_time`.
+
+```python
+import numpy as np
+import bemsolver as bem
+import pickle
+
+# Add path to your swimmer object file 
+swimmer_object = "path/to/swimmer_object.pkl
+
+with open(swimmer_object, 'rb') as file:
+    chlamy = pickle.load(file)
+    file.close()
+
+
+def find_flow(t,x):
+    """No background flow"""
+   return np.zeros(3), np.zeros(3), np.zeros((3,3))
+
+dt = 400*10**(-6)
+solution = chlamy.RBM_over_time(dt,10*(chlamy.N_frames)*dt, find_flow,initial_orientation=np.array([0, 0, 0]))
 ```
 
 `gmsh`, `pyvista`, and `mpi4py` are project dependencies. If `uv sync` reports a platform-specific build problem, update `uv` first and consult the dependency's installation instructions; the solver itself does not require MPI unless your own workflow uses it.
