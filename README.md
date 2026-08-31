@@ -110,7 +110,7 @@ mesh.plot_mesh()  # optional visual check
 | `Delta_rho` |  Density difference in kg/m^3 between particle/cell and fluid medium. | 0 |
 | `medium_rho` | Density of the fluid medium in kg/m^3 | 1000 |
 | `COM_offset` | The Centre-of-Mass offset from the geometric centre in microns. | 0 |
-| `volume` | The volume of the mesh is automatically assumed to be a spheroid. If that is not the case, manually set the volume. | `(4/3)*pi*a*b^2` if a and b are available, otherwise 0.` |
+| `volume` | The volume of the mesh is automatically assumed to be a spheroid. If that is not the case, manually set the volume. | `(4/3)*pi*a*b^2` if a and b are available, otherwise 0. |
 
 For example, to give your particle a bottom heaviness of 0.1 microns use:
 ```python
